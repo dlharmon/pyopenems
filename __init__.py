@@ -296,10 +296,11 @@ class OpenEMS:
         return Cylinder(self, name, material, priority, start, stop, radius)
     def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
         return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
-    def write_kicad(self, fpname):
+    def write_kicad(self, fpname, mirror=""):
         f = footgen.Footgen(fpname)
+        g = f.generator
+        g.mirror = mirror
         for object in self.objects:
-            g = f.generator
             g.options = "masked"
             g.drill = 0
             self.objects[object].generate_kicad(g)
