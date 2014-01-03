@@ -200,9 +200,10 @@ class Via(Object):
     def generate_kicad(self, g):
         g.diameter = self.padradius * 2000.0 # footgen uses mm
         g.drill = self.drillradius * 2000.0
-        g.mask_clearance = -0.1
+        g.mask_clearance = -0.5*(g.diameter-g.drill) + 0.03
         g.options = "circle"
         g.add_pad(x = self.x * 1000.0, y = self.y * 1000.0, name = self.padname)
+        g.mask_clearance = False
 
     def duplicate(self, name):
         return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
