@@ -3,8 +3,10 @@ import os
 import numpy as np
 import scipy.io
 from scipy.constants import pi, c, epsilon_0, mu_0
+mm = 0.001
 import matplotlib.pyplot
 import footgen
+import resistor
 
 np.set_printoptions(precision=8)
 
@@ -75,6 +77,17 @@ class Dielectric(Material):
         retval += "CSX = SetMaterialProperty( CSX, '{}', 'Epsilon', {}{});\n".format(self.name, self.eps_r, optionals)
         return retval
 
+class LumpedElement(Material):
+    """ element_type = 'R' or 'C' or 'L' """
+    def __init__(self, em, name, element_type='R', value=50.0, direction = 'x'):
+        self.em = em
+        self.name = name
+        self.element_type = element_type
+        self.value = value
+        self.direction = direction
+        em.materials[name] = self
+    def generate_octave(self):
+        return "CSX = AddLumpedElement( CSX, '{}', '{}', 'Caps', 0, '{}', {});\n".format(self.name, self.direction, self.element_type, self.value)
 
 class Metal(Material):
     def __init__(self, em, name):
@@ -109,6 +122,10 @@ class Object():
     def mirror(self, axes):
         self.start = mirror(self.start, axes)
         self.stop = mirror(self.stop, axes)
+    def rotate_ccw_90(self):
+        """ rotate 90 degrees CCW in XY plane """
+        self.start = np.array([-1.0*self.start[1], self.start[0], self.start[2]])
+        self.stop = np.array([-1.0*self.stop[1], self.stop[0], self.stop[2]])
     def offset(self, val):
         self.start += val
         self.stop += val
@@ -289,6 +306,8 @@ class OpenEMS:
         return LossyMetal(self, name, conductivity, frequency, thickness, ur)
     def add_dielectric(self, name, eps_r=1.0, kappa = None, ur=1.0):
         return Dielectric(self, name, eps_r, kappa, ur)
+    def add_lumped(self, name, element_type='R', value=50.0, direction = 'x'):
+        return LumpedElement(self, name, element_type, value, direction)
     def add_box(self, name, material, priority, start, stop, padname='1'):
         return Box(self, name, material, priority, start, stop, padname)
     def add_port(self, start, stop, direction, z):
@@ -297,6 +316,40 @@ class OpenEMS:
         return Cylinder(self, name, material, priority, start, stop, radius)
     def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
         return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
+    def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec'):
+        """ currently only supports 'x', 'y' for direction """
+        element_name = name + "_element"
+        self.add_lumped(element_name, element_type='R', value = value, direction = direction)
+        # resistor end caps
+        start = np.array([-0.15*mm, -0.3*mm, 0])
+        stop  = np.array([0.15*mm, -0.25*mm/2, 0.02*mm])
+        cap1 = self.add_box(name+"_end_cap", metal_name, priority, start, stop)
+        cap2 = cap1.duplicate(name+"+_end_cap2")
+        cap2.mirror('y')
+        # resistor body
+        start = np.array([-0.15, -0.27, 0.02])*mm
+        stop  = np.array([0.15, 0.27, 0.23])*mm
+        body = self.add_box(name+"_body", dielectric_name, priority + 1, start, stop)
+        # resistor element
+        start = np.array([-0.1, -0.25/2, 0])*mm
+        stop  = np.array([0.1, 0.25/2, 0.02])*mm
+        element = self.add_box(element_name, element_name, priority + 1, start, stop)
+        # reposition
+        if invert:
+            cap1.mirror('z')
+            cap2.mirror('z')
+            body.mirror('z')
+            element.mirror('z')
+        if not 'y' in direction:
+            cap1.rotate_ccw_90()
+            cap2.rotate_ccw_90()
+            body.rotate_ccw_90()
+            element.rotate_ccw_90()
+        cap1.offset(origin)
+        cap2.offset(origin)
+        body.offset(origin)
+        element.offset(origin)
+
     def write_kicad(self, fpname, mirror=""):
         f = footgen.Footgen(fpname)
         g = f.generator
