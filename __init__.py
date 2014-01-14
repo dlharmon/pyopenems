@@ -333,13 +333,13 @@ class OpenEMS:
         # resistor end caps
         start = np.array([-0.15*mm, -0.3*mm, 0])
         stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
-        cap1 = self.add_box(name+"_end_cap", metal_name, priority, start, stop)
+        cap1 = Box(self, name+"_end_cap", metal_name, priority, start, stop, padname = None)
         cap2 = cap1.duplicate(name+"+_end_cap2")
         cap2.mirror('y')
         # resistor body
         start = np.array([-0.15, -0.27, 0.02])*mm
         stop  = np.array([0.15, 0.27, 0.23])*mm
-        body = self.add_box(name+"_body", dielectric_name, priority + 1, start, stop)
+        body = Box(self, name+"_body", dielectric_name, priority + 1, start, stop, padname = None)
         # resistor element
         if element_down:
             zoff = 0.0
@@ -347,7 +347,7 @@ class OpenEMS:
             zoff = 0.23
         start = np.array([-0.1, -0.25/2, 0+zoff])*mm
         stop  = np.array([0.1, 0.25/2, 0.02+zoff])*mm
-        element = self.add_box(element_name, element_name, priority + 1, start, stop)
+        element = Box(self, element_name, element_name, priority + 1, start, stop, padname = None)
         # reposition
         if invert:
             cap1.mirror('z')
