@@ -28,6 +28,8 @@ class IDBPF():
         self.via_radius = 0.15*mm
         self.via_padradius = 0.3*mm
         self.mask_thickness = 0.0
+        self.inner_metal = False
+        self.inner_metal_z = [[]]
     def generate(self):
         # fingers
         y = -0.5*self.space[-1:][0]
@@ -65,7 +67,7 @@ class IDBPF():
         p = self.em.add_port(start, stop, direction='x', z=50)
         p.mirror(mirrorstring[mirror])
         p.duplicate().mirror('xy')
-        # metal ring (ends)
+        # metal ring (sides)
         y1 = y + 0.5*self.feedwidth + self.feedgap
         y2 = y1 + self.ring_y_width
         start = [self.ring_ox, y1, self.z[1]]
@@ -80,6 +82,19 @@ class IDBPF():
         box = self.em.add_box('ring3', self.metal_name, self.priority, start, stop, padname = '2')
         box.mirror(mirrorstring[mirror])
         box.duplicate('ring4').mirror('xy')
+        # metal - inner ends
+        if self.inner_metal:
+            imname = 0
+            for z in self.inner_metal_z:
+                start = [self.ring_ox, y1, z[0]]
+                stop  = [-1.0 * self.ring_ox, y2, z[1]]
+                box = self.em.add_box('mi{}'.format(imname), self.metal_name, self.priority, start, stop, padname = None)
+                box.duplicate('mi{}'.format(imname+1)).mirror('xy')
+                start = [self.ring_ox, y2, z[0]]
+                stop  = [self.ring_ix, -1.0*y2, z[1]]
+                box = self.em.add_box('mi{}'.format(imname+2), self.metal_name, self.priority, start, stop, padname = None)
+                box.duplicate('mi{}'.format(imname+3)).mirror('xy')
+                imname += 4
         # substrate
         start = np.array([self.ring_ox, y2, self.z[0]])
         stop  = openems.mirror(start, 'xy') 
