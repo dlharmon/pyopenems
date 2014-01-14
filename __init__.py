@@ -148,6 +148,8 @@ class Box(Object):
     def generate_kicad(self, g):
         if self.em.materials[self.material].__class__.__name__ == 'Dielectric':
             return
+        if self.padname == None:
+            return
         g.width = 1000.0 * abs(self.start[0] - self.stop[0]) # mm
         g.height = 1000.0 * abs(self.start[1] - self.stop[1]) 
         x = 500.0 * (self.start[0] + self.stop[0]) # mm
