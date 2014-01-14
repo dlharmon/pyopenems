@@ -303,20 +303,28 @@ class OpenEMS:
         self.resolution = 0.0001
         self.mesh = Mesh()
     def add_metal(self, name):
+        print "add_metal is deprecated - use openems.Metal() directly"
         return Metal(self, name)
     def add_lossy_metal(self, name, conductivity=56e6, frequency=None, thickness=None, ur=1.0):
+        print "add_lossy_metal is deprecated - use openems.LossyMetal() directly"
         return LossyMetal(self, name, conductivity, frequency, thickness, ur)
     def add_dielectric(self, name, eps_r=1.0, kappa = None, ur=1.0):
+        print "add_dielectric is deprecated - use openems.Dielectric() directly"
         return Dielectric(self, name, eps_r, kappa, ur)
     def add_lumped(self, name, element_type='R', value=50.0, direction = 'x'):
+        print "add_lumped is deprecated - use openems.LumpedElement() directly"
         return LumpedElement(self, name, element_type, value, direction)
     def add_box(self, name, material, priority, start, stop, padname='1'):
+        print "add_box is deprecated - use openems.Box() directly"
         return Box(self, name, material, priority, start, stop, padname)
     def add_port(self, start, stop, direction, z):
+        print "add_port is deprecated - use openems.Port() directly"
         return Port(self, start, stop, direction, z)
     def add_cylinder(self, name, material, priority, start, stop, radius):
+        print "add_cylinder is deprecated - use openems.Cylinder() directly"
         return Cylinder(self, name, material, priority, start, stop, radius)
     def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
+        print "add_via is deprecated - use openems.Via() directly"
         return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
     def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec', element_down=False):
         """ currently only supports 'x', 'y' for direction """
