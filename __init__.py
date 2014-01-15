@@ -132,6 +132,7 @@ class Object():
     def generate_kicad(self, g):
         pass
 
+from polygon import Polygon
 
 class Box(Object):
     def __init__(self, em, name, material, priority, start, stop, padname = '1'):
@@ -373,7 +374,7 @@ class OpenEMS:
             g.drill = 0
             self.objects[object].generate_kicad(g)
         f.finish()
-        #"FDTD = SetBoundaryCond(FDTD, {'PEC' 'PEC' 'PEC' 'PEC' 'PEC' 'PEC'});")
+
     def run_openems(self, options='view solve'):
         octave = self.generate_octave_header()
         for material in self.materials:
@@ -388,19 +389,27 @@ class OpenEMS:
             s = scipy.io.loadmat(self.sim_path + "/sim.mat")
             self.frequencies = s['f'][0]
             self.s11 = s['s11'][0]
-            self.s21 = s['s21'][0]
-            save_s2p_symmetric(self.frequencies, self.s11, self.s21, self.name+".s2p")
             fig, ax = matplotlib.pyplot.subplots()
-            ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s21)), label = 'dB(s11)')
-            ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s11)), label = 'dB(s21)')
+            if self.nports > 1:
+                self.s21 = s['s21'][0]
+                ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s21)), label = 'dB(s21)')
+            ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s11)), label = 'dB(s11)') 
+            if self.nports > 2:
+                self.s31 = s['s31'][0]
+                ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s31)), label = 'dB(s31)')
+            if self.nports > 3:
+                self.s41 = s['s41'][0]
+                ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s41)), label = 'dB(s41)')
+            save_s2p_symmetric(self.frequencies, self.s11, self.s21, self.name+".s2p")
             ax.set_xlabel('Frequency (GHz)')
-            ax.set_ylabel('dB(s11), dB(s21)')
+            ax.set_ylabel('dB')
             if self.xgrid != None:
                 ax.set_xticks(self.xgrid)
             if self.ygrid != None:
                 ax.set_yticks(self.ygrid)
             ax.grid(True)
             fig.tight_layout()
+            ax.legend(loc=2)
             matplotlib.pyplot.savefig(self.name+".png")
             matplotlib.pyplot.savefig(self.name+".svg")
             matplotlib.pyplot.savefig(self.name+".pdf")
