@@ -4,10 +4,6 @@ mm = 0.001
 import openems
 import numpy as np
 
-#!/usr/bin/env python
-mm = 0.001
-import numpy as np
-
 class Coupler():
     def __init__(self, em, metal_name, substrate_name, miter, z, port_length,
                  box_length, ms_width, coupler_gap, cpw_gap, box_y,
@@ -22,8 +18,6 @@ class Coupler():
         self.priority = priority
         self.ms_width = ms_width
         self.coupler_gap = coupler_gap
-        self.via_radius = 0.15*mm
-        self.via_padradius = 0.3*mm
         self.cpw_gap = cpw_gap
         self.coupler_length = coupler_length
         self.coupler_width = coupler_width
