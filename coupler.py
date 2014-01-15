@@ -38,7 +38,7 @@ class Coupler():
         x1 = x0 + self.port_length
         start = np.array([x1,                    0.5*self.ms_width, self.z[1]])
         stop  = np.array([x1 + self.pin_length, -0.5*self.ms_width, self.z[2]])
-        l1 = openems.Box(self.em, 'line_p1', 'pec', self.priority, start, stop, padname = '1')
+        l1 = openems.Box(self.em, 'line_p1', self.metal_name, self.priority, start, stop, padname = '1')
         l2 = l1.duplicate("line_p2")
         l2.mirror('x')
         l2.padname = '2'
@@ -48,7 +48,7 @@ class Coupler():
         # through line middle 
         diff = 0.5 * np.abs(self.ms_width - self.main_line_width)
         openems.Polygon(self.em, name = 'throughline',
-                        material = 'pec',
+                        material = self.metal_name,
                         priority = self.priority, 
                         points = np.array([[     x1,  0.5*self.ms_width],
                                            [-1.0*x1,  0.5*self.ms_width],
@@ -72,13 +72,13 @@ class Coupler():
         
         start = np.array([xc1, yc2, self.z[1]])
         stop  = np.array([xc2, yc3, self.z[2]])
-        l3 = openems.Box(self.em, 'line_p3', 'pec', self.priority, start, stop, padname = '3')
+        l3 = openems.Box(self.em, 'line_p3', self.metal_name, self.priority, start, stop, padname = '3')
         l4 = l3.duplicate("line_p4")
         l4.mirror('x')
         l4.padname = '4'
         
         openems.Polygon(self.em, name = 'coupledline',
-                        material = 'pec',
+                        material = self.metal_name,
                         priority = self.priority, 
                         points = np.array([[xc1 + self.miter,  yc0],
                                            [xc1, yc0 + self.miter],
@@ -108,7 +108,7 @@ class Coupler():
         if self.cpw_gap != None:
             start = np.array([-0.5*self.box_length, -0.5*self.ms_width - self.cpw_gap, self.z[0]])
             stop  = np.array([ 0.5*self.box_length, self.box_y[0], self.z[2]])
-            openems.Box(self.em, 'ground_lower_top', 'pec', self.priority, start, stop, padname = None)
+            openems.Box(self.em, 'ground_lower_top', self.metal_name, self.priority, start, stop, padname = None)
             start = np.array([-0.5*self.box_length, 0.5*self.ms_width + self.cpw_gap, self.z[0]])
             stop  = np.array([xc1 - self.cpw_gap, self.box_y[1], self.z[2]])
-            openems.Box(self.em, 'ground_upper_left', 'pec', self.priority, start, stop, padname = None).duplicate('ground_upper_right').mirror('x')
+            openems.Box(self.em, 'ground_upper_left', self.metal_name, self.priority, start, stop, padname = None).duplicate('ground_upper_right').mirror('x')
