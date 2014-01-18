@@ -61,7 +61,7 @@ class Coupler():
                         elevation = self.z[1:],
                         normal_direction = 'z',
                         pcb_layer = 'F.Cu',
-                        pcb_width = 0.0)
+                        pcb_width = 0.001*mm)
         # coupled line
         yc0 = 0.5*self.ms_width + self.coupler_gap
         yc1 = yc0 + self.coupler_width
@@ -93,7 +93,7 @@ class Coupler():
                         elevation = self.z[1:],
                         normal_direction = 'z',
                         pcb_layer = 'F.Cu',
-                        pcb_width = 0.0)
+                        pcb_width = 0.001*mm)
         
         # main line ports
         start = [x0, -0.5*self.ms_width, self.z[1]]
