@@ -55,5 +55,6 @@ class Polygon(openems.Object):
         for p in self.points:
             octave += "p(1,{}) = {}; p(2,{}) = {};\n".format(n, p[0], n, p[1])
             n += 1
-        octave += "CSX = AddLinPoly( CSX, '{}', {}, '{}', {}, p, {});\n".format(self.material, self.priority, self.normal_direction, self.elevation[0], self.elevation[1] - self.elevation[0])
+        height = self.elevation[1] - self.elevation[0]
+        octave += "CSX = AddLinPoly( CSX, '{}', {}, '{}', {}, p, {});\n".format(self.material, self.priority, self.normal_direction, round(self.elevation[0],8), 0.8*round(height, 8))
         return octave
