@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 mm = 0.001
 import numpy as np
+import openems
 
 class ECBPF():
     def __init__(self, em, nresonators):
@@ -20,20 +21,20 @@ class ECBPF():
         start = [x - self.length[2], y, self.metal_z[0]];
         y += self.width[2]
         stop  = [x + self.length[2], y, self.metal_z[1]];
-        self.em.add_box('r2', self.metal_name, self.priority, start, stop).duplicate('r2m').mirror('xy')
+        openems.Box(self.em, 'r2', self.metal_name, self.priority, start, stop).duplicate('r2m').mirror('xy')
         # finger 1
         x += rl_max
         y += self.space[1]
         start = [x - self.length[1], y, self.metal_z[0]];
         y += self.width[1]
         stop  = [x + self.length[1], y, self.metal_z[1]];
-        self.em.add_box('r1', self.metal_name, self.priority, start, stop).duplicate('r1m').mirror('xy')
+        openems.Box(self.em, 'r1', self.metal_name, self.priority, start, stop).duplicate('r1m').mirror('xy')
         # finger 0 (half length coupling)
         x += rl_max
         y += self.space[0]
         start = [x - self.length[0], y, self.metal_z[0]];
         y += self.width[0]
         stop  = [x, y, self.metal_z[1]];
-        self.em.add_box('r0', self.metal_name, self.priority, start, stop).duplicate('r0m').mirror('xy')
+        openems.Box(self.em, 'r0', self.metal_name, self.priority, start, stop).duplicate('r0m').mirror('xy')
         self.xmax = x
         self.ymax = y
