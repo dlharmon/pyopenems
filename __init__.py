@@ -6,7 +6,6 @@ from scipy.constants import pi, c, epsilon_0, mu_0
 mm = 0.001
 import matplotlib.pyplot
 import footgen
-import resistor
 
 np.set_printoptions(precision=8)
 
