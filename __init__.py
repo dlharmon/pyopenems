@@ -329,7 +329,7 @@ class OpenEMS:
     def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec', element_down=False):
         """ currently only supports 'x', 'y' for direction """
         element_name = name + "_element"
-        self.add_lumped(element_name, element_type='R', value = value, direction = direction)
+        LumpedElement(self, element_name, element_type='R', value = value, direction = direction)
         # resistor end caps
         start = np.array([-0.15*mm, -0.3*mm, 0])
         stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
