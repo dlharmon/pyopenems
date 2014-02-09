@@ -296,6 +296,7 @@ class OpenEMS:
         self.via_offset_y = 0.0
         self.xgrid = None
         self.ygrid = None
+        self.legend_location = 2 # upper left
         try:
             os.mkdir(self.sim_path)
         except:
@@ -408,7 +409,7 @@ class OpenEMS:
                 ax.set_yticks(self.ygrid)
             ax.grid(True)
             fig.tight_layout()
-            ax.legend(loc=2)
+            ax.legend(loc=self.legend_location)
             matplotlib.pyplot.savefig(self.name+".png")
             matplotlib.pyplot.savefig(self.name+".svg")
             matplotlib.pyplot.savefig(self.name+".pdf")
