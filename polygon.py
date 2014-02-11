@@ -45,7 +45,7 @@ class Polygon(openems.Object):
             return
         if self.pcb_layer == None:
             return
-         g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width = self.pcb_width)
+        g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width = self.pcb_width)
 
     def generate_octave(self):
         octave = ""
