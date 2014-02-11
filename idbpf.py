@@ -9,26 +9,42 @@ mm = 0.001
 import numpy as np
 
 class IDBPF():
-    def __init__(self, em):
+    def __init__(self, 
+                 em, # openems instance
+                 metal_name = 'pec', # metal instance, define with openems.Metal()
+                 z = [], # z position vector, z[0] = substrate bottom, z[1] = substrate top, z[2] = foil top
+                 space = [], # space between resonator fingers
+                 rl = [], # length of resonator fingers
+                 rw = [], # width of resonator fingers
+                 priority = 9, # openems priority of all filter metal
+                 portlength = 0.2*mm, # length of the openems port
+                 feedwidth = 0.85*mm, # width of the trace leaving the filter and port
+                 feedgap = 0.2*mm, # space from trace leaving the filter to via ring
+                 viaoffset = [0.0, 0.0], # [x,y], shift the vias to simulate drill registration error
+                 via_radius = 0.15*mm, # radius of the via drills
+                 via_padradius = 0.3*mm, # radius of the via pads
+                 mask_thickness = 0, # set to non-zero to enable solder mask over filter 
+                 inner_metal = False, # set to True to enable inner metal layers in via ring
+                 inner_metal_z = [[]]): # 
         self.em = em
-        self.metal_name = 'pec'
-        self.z = [] # [bottom of substrate, top of substrate, top of metal] 
-        self.space = []
-        self.rl = []
-        self.rw = []
-        self.ring_ix = 0.0
-        self.ring_ox = 0.0
-        self.ring_y_width = 1.0*mm
-        self.portlength = 0.2*mm
-        self.priority = 9
-        self.feedwidth = 0.85*mm
-        self.feedgap = 0.2*mm
-        self.viaoffset = [0.0, 0.0]
-        self.via_radius = 0.15*mm
-        self.via_padradius = 0.3*mm
-        self.mask_thickness = 0.0
-        self.inner_metal = False
-        self.inner_metal_z = [[]]
+        self.metal_name = metal_name
+        self.z = z
+        self.space = space
+        self.rl = rl
+        self.rw = rw
+        self.ring_ix = 0.5 * (np.max(self.rl) + via_padradius)
+        self.ring_ox = self.ring_ix + 2.0 * via_padradius
+        self.ring_y_width = via_padradius * 2.0
+        self.portlength = portlength
+        self.priority = priority
+        self.feedwidth = feedwidth
+        self.feedgap = feedgap
+        self.viaoffset = viaoffset
+        self.via_radius = via_radius
+        self.via_padradius = via_padradius
+        self.mask_thickness = mask_thickness
+        self.inner_metal = inner_metal
+        self.inner_metal_z = inner_metal_z
     def generate(self):
         # fingers
         y = -0.5*self.space[-1:][0]
