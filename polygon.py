@@ -41,13 +41,11 @@ class Polygon(openems.Object):
         self.points = np.array(self.points) + val[:2]
 
     def generate_kicad(self, g):
-        print "gen kicad for poly called"
         if self.em.materials[self.material].__class__.__name__ == 'Dielectric':
             return
         if self.pcb_layer == None:
             return
-        print "gen kicad for poly running"
-        g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width = self.pcb_width)
+         g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width = self.pcb_width)
 
     def generate_octave(self):
         octave = ""
