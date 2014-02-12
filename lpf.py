@@ -12,7 +12,7 @@ class LPF():
         self.metal_name = metal_name
         self.substrate_name = substrate_name
         self.z = z # [bottom of substrate, top of substrate, top of metal] 
-        self.box_length = 2.0*(port_length + ms_width) + np.sum(section[:,0])
+        self.box_length = 2.0*(port_length) + np.sum(section[:,0])
         self.box_width = box_width
         self.port_length = port_length
         self.priority = priority
@@ -34,7 +34,7 @@ class LPF():
         l2 = l1.duplicate("line_p2")
         l2.mirror('x')
         l2.padname = '2'
-        x = x2
+        x = x1
         points = np.zeros((2*len(self.section),2))
         i = 0
         for s in self.section:
