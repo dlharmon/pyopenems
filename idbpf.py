@@ -20,6 +20,7 @@ class IDBPF():
                  portlength = 0.2*mm, # length of the openems port
                  feedwidth = 0.85*mm, # width of the trace leaving the filter and port
                  feedgap = 0.2*mm, # space from trace leaving the filter to via ring
+                 end_gap = 0.3*mm, # space between the end of a resonator and ground
                  viaoffset = [0.0, 0.0], # [x,y], shift the vias to simulate drill registration error
                  via_radius = 0.15*mm, # radius of the via drills
                  via_padradius = 0.3*mm, # radius of the via pads
@@ -32,7 +33,7 @@ class IDBPF():
         self.space = space
         self.rl = rl
         self.rw = rw
-        self.ring_ix = 0.5 * (np.max(self.rl) + via_padradius)
+        self.ring_ix = 0.5 * (np.max(self.rl) + end_gap)
         self.ring_ox = self.ring_ix + 2.0 * via_padradius
         self.ring_y_width = via_padradius * 2.0
         self.portlength = portlength
