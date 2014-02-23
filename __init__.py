@@ -121,6 +121,7 @@ class Object():
     def mirror(self, axes):
         self.start = mirror(self.start, axes)
         self.stop = mirror(self.stop, axes)
+        return self
     def rotate_ccw_90(self):
         """ rotate 90 degrees CCW in XY plane """
         self.start = np.array([-1.0*self.start[1], self.start[0], self.start[2]])
@@ -130,6 +131,9 @@ class Object():
         self.stop += val
     def generate_kicad(self, g):
         pass
+    def duplicate_n(self, name, step, count):
+        for i in range(count-1):
+            self.duplicate("{}_{}".format(name, i+2)).offset(np.array(step)*(i+1))
 
 from polygon import Polygon
 
@@ -216,6 +220,7 @@ class Via(Object):
             self.x *= -1.0
         if 'y' in axes:
             self.y *= -1.0
+        return self
     def generate_kicad(self, g):
         g.diameter = self.padradius * 2000.0 # footgen uses mm
         g.drill = self.drillradius * 2000.0
@@ -223,7 +228,9 @@ class Via(Object):
         g.options = "circle"
         g.add_pad(x = self.x * 1000.0, y = self.y * 1000.0, name = self.padname)
         g.mask_clearance = False
-
+    def offset(self, val):
+        self.x += val[0]
+        self.y += val[1]
     def duplicate(self, name):
         return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
