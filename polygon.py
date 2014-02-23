@@ -51,6 +51,7 @@ class Polygon(openems.Object):
     def generate_octave(self):
         octave = ""
         n = 1
+        octave += "p = 0;\n"
         for p in self.points:
             octave += "p(1,{}) = {}; p(2,{}) = {};\n".format(n, p[0], n, p[1])
             n += 1
