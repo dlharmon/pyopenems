@@ -32,6 +32,7 @@ class Polygon(openems.Object):
             self.points = np.array(self.points) * [-1.0, 1.0]
         if 'y' in axes:
             self.points = np.array(self.points) * [1.0, -1.0]
+        return self
     
     def rotate_ccw_90(self):
         print "rotate_ccw_90() not supported for Polygon, ignoring"
@@ -56,3 +57,6 @@ class Polygon(openems.Object):
         height = self.elevation[1] - self.elevation[0]
         octave += "CSX = AddLinPoly( CSX, '{}', {}, '{}', {}, p, {});\n".format(self.material, self.priority, self.normal_direction, round(self.elevation[0],8), 0.8*round(height, 8))
         return octave
+
+    def duplicate(self, name):
+        return Polygon(self.em, name, self.material, self.priority, self.points, self.elevation, self.normal_direction, self.pcb_layer, self.pcb_width)
