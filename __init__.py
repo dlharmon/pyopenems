@@ -244,19 +244,20 @@ class Via(Object):
         return octave
     
 class Port(Object):
-    def __init__(self, em, start, stop, direction, z):
+    def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu'):
         self.em = em
         self.start = np.array(start)
         self.stop = np.array(stop)
         self.direction = direction
         self.z = z
+        self.padname = padname
+        self.layer = layer
         em.nports += 1
         self.portnumber = em.nports
         name = "p" + str(self.portnumber)
         em.objects[name] = self
     def duplicate(self):
-        return Port(self.em, self.start, self.stop, self.direction, self.z)
-    
+        return Port(self.em, self.start, self.stop, self.direction, self.z, padname = self.padname, layer = self.layer)
     def generate_octave(self):
         dirtable = {'x': [1, 0, 0], 'y': [0, 1, 0], 'z': [0,0,1]};
         excite = 0
@@ -264,7 +265,14 @@ class Port(Object):
             excite = 1
         octave = "[CSX, port{{{}}}] = AddLumpedPort(CSX, 999, {}, {}, {}, {}, {}, {});\n".format(self.portnumber,self.portnumber,self.z,self.start,self.stop, openems_direction_vector(self.direction), excite)
         return octave
-
+    def generate_kicad(self, g):
+        if self.padname == None:
+            return
+        g.width = 1000.0 * abs(self.start[0] - self.stop[0]) # mm
+        g.height = 1000.0 * abs(self.start[1] - self.stop[1]) 
+        x = 500.0 * (self.start[0] + self.stop[0]) # mm
+        y = 500.0 * (self.start[1] + self.stop[1]) # mm
+        g.add_pad(x,y,self.padname, layer = self.layer)
 
 class Mesh():
     def __init__(self):
@@ -460,7 +468,7 @@ class OpenEMS:
                 footer += "RunOpenEMS('{}', '{}');\n".format(self.sim_path, "csx.xml")
             footer += "close all\n"
             footer += "f = linspace({},{},{});\n".format(self.fmin, self.fmax, self.fsteps)
-            footer += "port = calcPort( port, '{}', f, 'RefImpedance', 50);\n".format(self.sim_path) # try removing impedance
+            footer += "port = calcPort( port, '{}', f);\n".format(self.sim_path)
             ports = ""
             for p in range(self.nports):
                 footer += "s{0}{1} = port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port)
