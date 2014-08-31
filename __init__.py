@@ -312,6 +312,9 @@ class OpenEMS:
         self.xgrid = None
         self.ygrid = None
         self.legend_location = 2 # upper left
+        self.options = ''
+        self.octave_mid = ''
+        self.octave_end = ''
         try:
             os.mkdir(self.sim_path)
         except:
@@ -415,7 +418,8 @@ class OpenEMS:
             if self.nports > 3:
                 self.s41 = s['s41'][0]
                 ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s41)), label = 'dB(s41)')
-            save_s2p_symmetric(self.frequencies, self.s11, self.s21, self.name+".s2p")
+            if self.nports > 1:
+                save_s2p_symmetric(self.frequencies, self.s11, self.s21, self.name+".s2p")
             ax.set_xlabel('Frequency (GHz)')
             ax.set_ylabel('dB')
             if self.xgrid != None:
@@ -437,20 +441,28 @@ class OpenEMS:
         #oh = "close all\nclear\nclc\n"
         oh = "unit = 1.0;\n" # specify everything in m
         oh += "FDTD = InitFDTD('NrTS', {}, 'EndCriteria', {});\n".format(self.max_timesteps, self.end_criteria)
-        oh += "FDTD = SetGaussExcite(FDTD, {}, {});\n".format(self.fo, self.fc)
+        if not 'no_excite' in self.options:
+            oh += "FDTD = SetGaussExcite(FDTD, {}, {});\n".format(self.fo, self.fc)
         #BC = {xmin xmax ymin ymax zmin zmax};
         oh += "FDTD = SetBoundaryCond(FDTD, {{{}}});\n".format(self.boundaries)
         oh += "CSX = InitCSX();\n" # setup CSXCAD geometry & mesh
         return oh
 
     def generate_octave_footer(self, options=None):
-        footer = "mesh = DetectEdges(CSX);\n"
+        if not 'no_detect_edges' in self.options:
+            footer = "mesh = DetectEdges(CSX);\n"
+        else:
+            footer = "mesh.x = [];\n"
+            footer += "mesh.y = [];\n"
+            footer += "mesh.z= [];\n"
         #if self.mesh.z:
-        footer += "mesh.x = [mesh.x, {}];\n".format(self.mesh.x)
-        footer += "mesh.y = [mesh.y, {}];\n".format(self.mesh.y)
-        footer += "mesh.z = [mesh.z, {}];\n".format(self.mesh.z)
-        footer += "mesh = SmoothMesh(mesh, {});\n".format(self.resolution)
+        footer += "mesh.x = [mesh.x, {}];\n".format(np.array(self.mesh.x).tolist())
+        footer += "mesh.y = [mesh.y, {}];\n".format(np.array(self.mesh.y).tolist())
+        footer += "mesh.z = [mesh.z, {}];\n".format(np.array(self.mesh.z).tolist())
+        if not 'no_smooth_mesh' in self.options:
+            footer += "mesh = SmoothMesh(mesh, {});\n".format(self.resolution)
         footer += "CSX = DefineRectGrid(CSX, unit, mesh);\n"
+        footer += self.octave_mid
         footer += "WriteOpenEMS('{}', FDTD, CSX );\n".format(self.sim_path + "/csx.xml")
         if 'view' in options:
             footer += "CSXGeomPlot('{}');\n".format(self.sim_path + "/csx.xml")
@@ -474,5 +486,6 @@ class OpenEMS:
                 footer += "s{0}{1} = port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port)
                 ports += "s{}{} ".format(p+1, self.excitation_port)
             footer += "save {} f {} -mat4-binary\n".format(self.sim_path+"/sim.mat", ports)
+            footer += self.octave_end
                         
         return footer
