@@ -57,10 +57,11 @@ class Material():
         self.name = name
 
 class Dielectric(Material):
-    def __init__(self, em, name, eps_r=1.0, kappa = None, ur=1.0):
+    def __init__(self, em, name, eps_r=1.0, kappa = None, ur=None):
         self.em = em
         self.name = name
         self.eps_r = eps_r
+        self.ur = ur
         self.kappa = kappa
         self.type = 'dielectric'
         self.lossy = False # metal loss
@@ -71,6 +72,8 @@ class Dielectric(Material):
     def generate_octave(self):
         retval = "CSX = AddMaterial( CSX, '{}' );\n".format(self.name)
         optionals = ""
+        if self.ur:
+            optionals += ", 'Mue', {}".format(self.ur)
         if self.kappa:
             optionals += ", 'Kappa', {}".format(self.kappa)
         retval += "CSX = SetMaterialProperty( CSX, '{}', 'Epsilon', {}{});\n".format(self.name, self.eps_r, optionals)
