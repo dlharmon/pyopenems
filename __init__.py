@@ -45,11 +45,11 @@ def db_angle(s):
 def save_s2p_symmetric(f, s11, s21, filename):
     fdata = "# GHz S DB R 50\n"
     for i in range(len(f)):
-        fdata += "{0:>12f} {1} {2} {2} {1}\n".format(f[i]/1e9, db_angle(s11[i]), db_angle(s21[i])) 
+        fdata += "{0:>12f} {1} {2} {2} {1}\n".format(f[i]/1e9, db_angle(s11[i]), db_angle(s21[i]))
     with open(filename, "w") as f:
-        f.write(fdata)    
+        f.write(fdata)
 
-    
+
 class Material():
     def __init__(self, em, name):
         self.lossy = False
@@ -134,9 +134,9 @@ class Object():
         self.stop += val
     def generate_kicad(self, g):
         pass
-    def duplicate_n(self, name, step, count):
+    def duplicate_n(self, name=None, step=[0,0,0], count=1):
         for i in range(count-1):
-            self.duplicate("{}_{}".format(name, i+2)).offset(np.array(step)*(i+1))
+            self.duplicate("{}_{}".format(self.em.get_name(name), i+2)).offset(np.array(step)*(i+1))
 
 from polygon import Polygon
 
@@ -147,10 +147,10 @@ class Box(Object):
         self.start = np.array(start)
         self.stop = np.array(stop)
         self.em = em
-        self.name = name
+        self.name = self.em.get_name(name)
         self.padname = padname
-        em.objects[name] = self
-    def duplicate(self, name):
+        em.objects[self.name] = self
+    def duplicate(self, name=None):
         return Box(self.em, name, self.material, self.priority, self.start, self.stop, self.padname)
     def generate_kicad(self, g):
         if self.em.materials[self.material].__class__.__name__ == 'Dielectric':
@@ -158,7 +158,7 @@ class Box(Object):
         if self.padname == None:
             return
         g.width = 1000.0 * abs(self.start[0] - self.stop[0]) # mm
-        g.height = 1000.0 * abs(self.start[1] - self.stop[1]) 
+        g.height = 1000.0 * abs(self.start[1] - self.stop[1])
         x = 500.0 * (self.start[0] + self.stop[0]) # mm
         y = 500.0 * (self.start[1] + self.stop[1]) # mm
         g.add_pad(x,y,self.padname)
@@ -183,12 +183,12 @@ class Cylinder(Object):
         self.start = np.array(start)
         self.stop = np.array(stop)
         self.em = em
-        self.name = name
+        self.name = self.em.get_name(name)
         self.radius = radius
         self.padname = '1'
         self.priority = priority
-        em.objects[name] = self
-    def duplicate(self, name):
+        em.objects[self.name] = self
+    def duplicate(self, name=None):
         return Cylinder(self.em, name, self.material, self.priority, self.start, self.stop, self.radius)
     def generate_octave(self):
         octave = "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, self.start, self.stop, self.radius)
@@ -215,9 +215,9 @@ class Via(Object):
         self.drillradius = drillradius
         self.padradius = padradius
         self.em = em
-        self.name = name
+        self.name = self.em.get_name(name)
         self.padname = padname
-        em.objects[name] = self
+        em.objects[self.name] = self
     def mirror(self, axes):
         if 'x' in axes:
             self.x *= -1.0
@@ -234,7 +234,7 @@ class Via(Object):
     def offset(self, val):
         self.x += val[0]
         self.y += val[1]
-    def duplicate(self, name):
+    def duplicate(self, name=None):
         return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
         start = np.round(1000000.0*np.array([self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][0]]))/1e6
@@ -245,7 +245,7 @@ class Via(Object):
             stop = [self.x, self.y, z[1]]
             octave += "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, start, stop, self.padradius)
         return octave
-    
+
 class Port(Object):
     def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu'):
         self.em = em
@@ -272,7 +272,7 @@ class Port(Object):
         if self.padname == None:
             return
         g.width = 1000.0 * abs(self.start[0] - self.stop[0]) # mm
-        g.height = 1000.0 * abs(self.start[1] - self.stop[1]) 
+        g.height = 1000.0 * abs(self.start[1] - self.stop[1])
         x = 500.0 * (self.start[0] + self.stop[0]) # mm
         y = 500.0 * (self.start[1] + self.stop[1]) # mm
         g.add_pad(x,y,self.padname, layer = self.layer)
@@ -318,6 +318,7 @@ class OpenEMS:
         self.options = ''
         self.octave_mid = ''
         self.octave_end = ''
+        self.name_count = 0
         try:
             os.mkdir(self.sim_path)
         except:
@@ -385,6 +386,11 @@ class OpenEMS:
         cap2.offset(origin)
         body.offset(origin)
         element.offset(origin)
+    def get_name(self, name):
+        if name:
+            return name
+        self.name_count += 1
+        return "pad_{}".format(self.name_count)
 
     def write_kicad(self, fpname, mirror=""):
         f = footgen.Footgen(fpname)
@@ -416,7 +422,7 @@ class OpenEMS:
             if self.nports > 1:
                 self.s21 = s['s21'][0]
                 ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s21)), label = 'dB(s21)')
-            ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s11)), label = 'dB(s11)') 
+            ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s11)), label = 'dB(s11)')
             if self.nports > 2:
                 self.s31 = s['s31'][0]
                 ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s31)), label = 'dB(s31)')
@@ -441,7 +447,7 @@ class OpenEMS:
             print(len(self.frequencies))
             print(s)
             # print os.system("/home/dlharmon/software/openEMS/openEMS/openEMS {}".format(filename+".xml"))
-            
+
     def generate_octave_header(self):
         #oh = "close all\nclear\nclc\n"
         oh = "unit = 1.0;\n" # specify everything in m
