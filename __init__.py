@@ -407,6 +407,8 @@ class OpenEMS:
             f.write(octave)
         os.system("octave {}".format(self.sim_path + "/sim.m"))
         if 'solve' in options:
+            if self.nports < 1:
+                return
             s = scipy.io.loadmat(self.sim_path + "/sim.mat")
             self.frequencies = s['f'][0]
             self.s11 = s['s11'][0]
@@ -483,12 +485,14 @@ class OpenEMS:
                 footer += "RunOpenEMS('{}', '{}');\n".format(self.sim_path, "csx.xml")
             footer += "close all\n"
             footer += "f = linspace({},{},{});\n".format(self.fmin, self.fmax, self.fsteps)
-            footer += "port = calcPort( port, '{}', f);\n".format(self.sim_path)
+            if self.nports > 1:
+                footer += "port = calcPort( port, '{}', f);\n".format(self.sim_path)
             ports = ""
             for p in range(self.nports):
                 footer += "s{0}{1} = port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port)
                 ports += "s{}{} ".format(p+1, self.excitation_port)
-            footer += "save {} f {} -mat4-binary\n".format(self.sim_path+"/sim.mat", ports)
+            if self.nports > 0:
+                footer += "save {} f {} -mat4-binary\n".format(self.sim_path+"/sim.mat", ports)
             footer += self.octave_end
-                        
+
         return footer
