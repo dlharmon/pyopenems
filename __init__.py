@@ -141,7 +141,7 @@ class Object():
 from polygon import Polygon
 
 class Box(Object):
-    def __init__(self, em, name, material, priority, start, stop, padname = '1'):
+    def __init__(self, em, name, material, priority, start, stop, padname = '1', layer='F.Cu'):
         self.priority = priority
         self.material = material
         self.start = np.array(start)
@@ -149,6 +149,7 @@ class Box(Object):
         self.em = em
         self.name = self.em.get_name(name)
         self.padname = padname
+        self.layer = layer
         em.objects[self.name] = self
     def duplicate(self, name=None):
         return Box(self.em, name, self.material, self.priority, self.start, self.stop, self.padname)
@@ -157,11 +158,14 @@ class Box(Object):
             return
         if self.padname == None:
             return
-        g.width = 1000.0 * abs(self.start[0] - self.stop[0]) # mm
-        g.height = 1000.0 * abs(self.start[1] - self.stop[1])
-        x = 500.0 * (self.start[0] + self.stop[0]) # mm
-        y = 500.0 * (self.start[1] + self.stop[1]) # mm
-        g.add_pad(x,y,self.padname)
+        g.add_pad(self.padname,
+                  layer = self.layer,
+                  x = 500.0 * (self.start[0] + self.stop[0]), # mm
+                  y = 500.0 * (self.start[1] + self.stop[1]), # mm
+                  xsize = 1000.0 * abs(self.start[0] - self.stop[0]), # mm
+                  ysize = 1000.0 * abs(self.start[1] - self.stop[1]),
+                  masked = True,
+                  paste = False)
     def generate_octave(self):
         if self.em.materials[self.material].__class__.__name__ == 'LossyMetal':
             return self.generate_octave_lossy()
@@ -225,12 +229,13 @@ class Via(Object):
             self.y *= -1.0
         return self
     def generate_kicad(self, g):
-        g.diameter = self.padradius * 2000.0 # footgen uses mm
-        g.drill = self.drillradius * 2000.0
-        g.mask_clearance = -0.5*(g.diameter-g.drill) + 0.03
-        g.options = "circle"
-        g.add_pad(x = self.x * 1000.0, y = self.y * 1000.0, name = self.padname)
-        g.mask_clearance = False
+        g.add_pad(x = self.x * 1000.0,
+                  y = self.y * 1000.0,
+                  diameter = self.padradius * 2000.0, # footgen uses mm
+                  drill = self.drillradius * 2000.0,
+                  mask_clearance = -500.0*(self.padradius-self.drillradius) + 0.03,
+                  shape = "circle",
+                  name = self.padname)
     def offset(self, val):
         self.x += val[0]
         self.y += val[1]
@@ -495,7 +500,8 @@ class OpenEMS:
                 footer += "port = calcPort( port, '{}', f);\n".format(self.sim_path)
             ports = ""
             for p in range(self.nports):
-                footer += "s{0}{1} = port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port)
+                zratio = np.sqrt(self.objects["p" + str(self.excitation_port)].z / self.objects["p" + str(p+1)].z)
+                footer += "s{0}{1} = {2} * port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port, zratio)
                 ports += "s{}{} ".format(p+1, self.excitation_port)
             if self.nports > 0:
                 footer += "save {} f {} -mat4-binary\n".format(self.sim_path+"/sim.mat", ports)
