@@ -6,7 +6,16 @@ import openems
 np.set_printoptions(precision=8)
 
 class Polygon(openems.Object):
-    def __init__(self, em, name, material, priority, points, elevation, normal_direction = 'z', pcb_layer = 'F.Cu', pcb_width = 0.0): 
+    def __init__(self,
+                 em,
+                 points,
+                 elevation,
+                 name=None,
+                 material='pec',
+                 priority=1,
+                 normal_direction = 'z',
+                 pcb_layer = 'F.Cu',
+                 pcb_width = 0.0):
         """
         Add a polygon, generally assumed to be in xy plane, but can be changed to yz or xz
         name: any unique name
@@ -16,7 +25,7 @@ class Polygon(openems.Object):
         elevation: start and stop points in the normal direction
         normal_direction: optional, default = z, direction normal to the polygon - 'x', 'y' or 'z'
         """
-        self.points = points
+        self.points = np.array(points)
         self.priority = priority
         self.material = material
         self.elevation = elevation
@@ -24,22 +33,24 @@ class Polygon(openems.Object):
         self.pcb_width = pcb_width
         self.normal_direction = normal_direction
         self.em = em
+        name = self.em.get_name(name)
         em.objects[name] = self
 
     def mirror(self, axes):
         """ only correct for xy plane """
         if 'x' in axes:
-            self.points = np.array(self.points) * [-1.0, 1.0]
+            self.points[:,0] *= -1.0
         if 'y' in axes:
-            self.points = np.array(self.points) * [1.0, -1.0]
+            self.points[:,1] *= -1.0
         return self
-    
+
     def rotate_ccw_90(self):
         print "rotate_ccw_90() not supported for Polygon, ignoring"
-        
+
     def offset(self, val):
         """ only correct for xy plane, 2d """
         self.points = np.array(self.points) + val[:2]
+        return self
 
     def generate_kicad(self, g):
         if self.em.materials[self.material].__class__.__name__ == 'Dielectric':
@@ -56,8 +67,16 @@ class Polygon(openems.Object):
             octave += "p(1,{}) = {}; p(2,{}) = {};\n".format(n, p[0], n, p[1])
             n += 1
         height = self.elevation[1] - self.elevation[0]
-        octave += "CSX = AddLinPoly( CSX, '{}', {}, '{}', {}, p, {});\n".format(self.material, self.priority, self.normal_direction, round(self.elevation[0],8), 0.8*round(height, 8))
+        octave += "CSX = AddLinPoly( CSX, '{}', {}, '{}', {}, p, {});\n".format(self.material, self.priority, self.normal_direction, round(self.elevation[0],8), round(height, 8))
         return octave
 
-    def duplicate(self, name):
-        return Polygon(self.em, name, self.material, self.priority, self.points, self.elevation, self.normal_direction, self.pcb_layer, self.pcb_width)
+    def duplicate(self, name=None):
+        return Polygon(em = self.em,
+                       points = self.points,
+                       elevation = self.elevation,
+                       name = name,
+                       material = self.material,
+                       priority = self.priority,
+                       normal_direction = self.normal_direction,
+                       pcb_layer = self.pcb_layer,
+                       pcb_width = self.pcb_width)
