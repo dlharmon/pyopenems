@@ -8,7 +8,8 @@ class Coupler():
     def __init__(self, em, metal_name, substrate_name, miter, z, port_length,
                  box_length, ms_width, coupler_gap, cpw_gap, box_y,
                  coupler_length, coupler_width, priority = 9,
-                 pin_length = 0.2*mm, main_line_width = None):
+                 pin_length = 0.2*mm, main_line_width = None,
+                 feed_coupled=False):
         self.em = em
         self.metal_name = metal_name
         self.substrate_name = substrate_name
@@ -28,6 +29,8 @@ class Coupler():
             self.main_line_width = coupler_width
         else:
             self.main_line_width = main_line_width
+        self.feed_coupled = feed_coupled
+
     def generate(self):
         # substrate
         start = np.array([ 0.5*self.box_length, self.box_y[0], self.z[0]])
@@ -113,14 +116,15 @@ class Coupler():
                         pcb_layer = 'F.Cu',
                         pcb_width = 0.001*mm)
 
-        # main line ports
-        start = [x0, -0.5*self.ms_width, self.z[1]]
-        stop  = [x1,  0.5*self.ms_width, self.z[2]]
-        openems.Port(self.em,
-                     start,
-                     stop,
-                     direction='x',
-                     z=50).duplicate().mirror('x')
+        if not self.feed_coupled:
+            # main line ports
+            start = [x0, -0.5*self.ms_width, self.z[1]]
+            stop  = [x1,  0.5*self.ms_width, self.z[2]]
+            openems.Port(self.em,
+                         start,
+                         stop,
+                         direction='x',
+                         z=50).duplicate().mirror('x')
         # coupled line ports
         start = [xc1, yc4, self.z[1]]
         stop  = [xc2, yc3, self.z[2]]
@@ -129,6 +133,15 @@ class Coupler():
                      stop,
                      direction='y',
                      z=50).duplicate().mirror('x')
+        if self.feed_coupled:
+            # main line ports
+            start = [x0, -0.5*self.ms_width, self.z[1]]
+            stop  = [x1,  0.5*self.ms_width, self.z[2]]
+            openems.Port(self.em,
+                         start,
+                         stop,
+                         direction='x',
+                         z=50).duplicate().mirror('x')
         # ground via
         if self.cpw_gap != None:
             start = np.array([-0.5*self.box_length,
