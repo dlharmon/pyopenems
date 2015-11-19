@@ -416,6 +416,7 @@ class OpenEMS:
         octave += self.generate_octave_footer(options)
         with open(self.sim_path+"/sim.m", "w") as f:
             f.write(octave)
+        os.system("rm -f {}".format(self.sim_path + "ABORT"))
         os.system("octave {}".format(self.sim_path + "/sim.m"))
         if 'solve' in options:
             if self.nports < 1:
@@ -483,15 +484,10 @@ class OpenEMS:
         if 'view' in options:
             footer += "CSXGeomPlot('{}');\n".format(self.sim_path + "/csx.xml")
         if 'solve' in options:
-            if 'solve_vna' in options:
-                footer += "Settings.SSH.host = 'dlharmon@vna';\n"
-                footer += "Settings.SSH.bin = '/home/dlharmon/software/newems/bin/openEMS.sh';\n"
+            if 'remote' in options:
+                footer += "Settings.SSH.host = 'dlharmon@dlhdesktop';\n"
+                footer += "Settings.SSH.bin = '/home/dlharmon/software/openEMS/bin/openEMS.sh';\n"
                 footer += "RunOpenEMS('{}', '{}', '{}', Settings);\n".format(self.sim_path, "csx.xml", "")
-            elif 'solve_mpi' in options:
-                footer += "Settings.MPI.Binary = '/home/dlharmon/software/newems/bin/openEMS';\n"
-                footer += "Settings.MPI.NrProc = 8;\n"
-                footer += "Settings.MPI.Hosts = {'dlhdesktop','vna'};\n"
-                footer += "RunOpenEMS_MPI('{}', '{}', '{}', Settings);\n".format(self.sim_path, "csx.xml", "")
             else:
                 footer += "RunOpenEMS('{}', '{}');\n".format(self.sim_path, "csx.xml")
             footer += "close all\n"
