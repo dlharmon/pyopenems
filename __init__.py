@@ -251,6 +251,51 @@ class Via(Object):
             octave += "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, start, stop, self.padradius)
         return octave
 
+class RoundPad(Object):
+    """PCB pad in Z direction
+    em = OpenEMS instance
+    material = a string matching a defined material (see Material class)
+    priority = integer, when objects overlap, higher takes precedence
+    x, y = position
+    z[0] = [barrel top, barrel bottom]
+    z[1:] = [pad top, pad bottom]
+    drill radius
+    pad rad
+    """
+    def __init__(self, em, material, priority, x, y, z, padradius, padname='1'):
+        self.material = material
+        self.priority = priority
+        self.x = x
+        self.y = y
+        self.z = z
+        self.padradius = padradius
+        self.em = em
+        self.name = self.em.get_name(None)
+        self.padname = padname
+        em.objects[self.name] = self
+    def mirror(self, axes):
+        if 'x' in axes:
+            self.x *= -1.0
+        if 'y' in axes:
+            self.y *= -1.0
+        return self
+    def generate_kicad(self, g):
+        g.add_pad(x = self.x * 1000.0,
+                  y = self.y * 1000.0,
+                  diameter = self.padradius * 2000.0, # footgen uses mm
+                  mask_clearance = 0.0,
+                  shape = "circle",
+                  name = self.padname)
+    def offset(self, val):
+        self.x += val[0]
+        self.y += val[1]
+    def duplicate(self, name=None):
+        return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
+    def generate_octave(self):
+        start = [self.x, self.y, self.z[0]]
+        stop = [self.x, self.y, self.z[1]]
+        return "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, start, stop, self.padradius)
+
 class Port(Object):
     def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu'):
         self.em = em
