@@ -399,27 +399,36 @@ class OpenEMS:
     def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
         print "add_via is deprecated - use openems.Via() directly"
         return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
-    def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec', element_down=False):
+    def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec', element_down=False, size='0201'):
         """ currently only supports 'x', 'y' for direction """
         element_name = name + "_element"
         LumpedElement(self, element_name, element_type='R', value = value, direction = direction)
         # resistor end caps
-        start = np.array([-0.15*mm, -0.3*mm, 0])
+        start = np.array([-0.15*mm, -0.25*mm, 0])
         stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
+        if size == '0402':
+            start = np.array([-0.25*mm, -0.5*mm, 0])
+            stop  = np.array([0.25*mm, -0.5*mm/2, 0.35*mm])
         cap1 = Box(self, name+"_end_cap", metal_name, priority, start, stop, padname = None)
         cap2 = cap1.duplicate(name+"+_end_cap2")
         cap2.mirror('y')
         # resistor body
         start = np.array([-0.15, -0.27, 0.02])*mm
         stop  = np.array([0.15, 0.27, 0.23])*mm
+        if size == '0402':
+            start = np.array([-0.25, -0.47, 0.02])*mm
+            stop  = np.array([0.25, 0.47, 0.33])*mm
         body = Box(self, name+"_body", dielectric_name, priority + 1, start, stop, padname = None)
         # resistor element
         if element_down:
             zoff = 0.0
         else:
-            zoff = 0.23
+            zoff = 0.33 if size == '0402' else 0.23
         start = np.array([-0.1, -0.25/2, 0+zoff])*mm
         stop  = np.array([0.1, 0.25/2, 0.02+zoff])*mm
+        if size == '0402':
+            start = np.array([-0.2, -0.25, 0+zoff])*mm
+            stop  = np.array([0.2, 0.25, 0.02+zoff])*mm
         element = Box(self, element_name, element_name, priority + 1, start, stop, padname = None)
         # reposition
         if invert:
@@ -461,7 +470,7 @@ class OpenEMS:
         octave += self.generate_octave_footer(options)
         with open(self.sim_path+"/sim.m", "w") as f:
             f.write(octave)
-        os.system("rm -f {}".format(self.sim_path + "ABORT"))
+        os.system("rm -f {}".format(self.sim_path + "/ABORT"))
         os.system("octave {}".format(self.sim_path + "/sim.m"))
         if 'solve' in options:
             if self.nports < 1:
