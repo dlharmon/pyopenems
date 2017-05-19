@@ -9,7 +9,8 @@ class Coupler():
                  box_length, ms_width, coupler_gap, cpw_gap, box_y,
                  coupler_length, coupler_width, priority = 9,
                  pin_length = 0.2*mm, main_line_width = None,
-                 feed_coupled=False):
+                 feed_coupled=False,
+                 dual=False): # if dual, coupler_width should = ms_width, cpw_gap = None
         self.em = em
         self.metal_name = metal_name
         self.substrate_name = substrate_name
@@ -30,6 +31,7 @@ class Coupler():
         else:
             self.main_line_width = main_line_width
         self.feed_coupled = feed_coupled
+        self.dual = dual
 
     def generate(self):
         # substrate
@@ -97,8 +99,13 @@ class Coupler():
         l4 = l3.duplicate("line_p4")
         l4.mirror('x')
         l4.padname = '4'
+        if self.dual:
+            l5 = l3.duplicate().mirror('y')
+            l5.padname = '5'
+            l6 = l4.duplicate().mirror('y')
+            l6.padname = '6'
 
-        openems.Polygon(self.em, name = 'coupledline',
+        p = openems.Polygon(self.em, name = 'coupledline',
                         material = self.metal_name,
                         priority = self.priority,
                         points = np.array([[xc1 + self.miter,  yc0],
@@ -116,6 +123,9 @@ class Coupler():
                         pcb_layer = 'F.Cu',
                         pcb_width = 0.001*mm)
 
+        if self.dual:
+            p.duplicate().mirror('y')
+
         if not self.feed_coupled:
             # main line ports
             start = [x0, -0.5*self.ms_width, self.z[1]]
@@ -128,11 +138,16 @@ class Coupler():
         # coupled line ports
         start = [xc1, yc4, self.z[1]]
         stop  = [xc2, yc3, self.z[2]]
-        openems.Port(self.em,
-                     start,
-                     stop,
-                     direction='y',
-                     z=50).duplicate().mirror('x')
+        cp1 = openems.Port(self.em,
+                           start,
+                           stop,
+                           direction='y',
+                           z=50)
+        cp2 = cp1.duplicate().mirror('x')
+        if self.dual:
+            cp1.duplicate().mirror('y')
+            cp2.duplicate().mirror('y')
+
         if self.feed_coupled:
             # main line ports
             start = [x0, -0.5*self.ms_width, self.z[1]]
