@@ -1,11 +1,14 @@
 #!/usr/bin/env python
-import os
+import os, tempfile
 import numpy as np
 import scipy.io
 from scipy.constants import pi, c, epsilon_0, mu_0
 mm = 0.001
 import matplotlib.pyplot
 import footgen
+
+from CSXCAD  import ContinuousStructure
+from openEMS import openEMS
 
 np.set_printoptions(precision=8)
 
@@ -18,15 +21,6 @@ def mirror(point, axes):
     if 'z' in axes:
         retval *= np.array([1,1,-1])
     return retval
-
-
-def openems_direction(direction):
-    if 'x' in direction:
-        return 0
-    if 'y' in direction:
-        return 1
-    if 'z' in direction:
-        return 2
 
 def openems_direction_vector(direction):
     if 'x' in direction:
@@ -55,9 +49,15 @@ class Material():
         self.lossy = False
         self.em = em
         self.name = name
+    def AddBox(self, start, stop, priority, padname=None):
+        return Box(self.em, start=start, stop=stop, priority=priority,
+                   name=None, material=self, padname=padname)
 
 class Dielectric(Material):
-    def __init__(self, em, name, eps_r=1.0, kappa = None, ur=None):
+    def __init__(self, em, name, eps_r=1.0, kappa = 0, ur=1.0, tand=0.0, fc = 0):
+        if tand > 0.0:
+            kappa = tand * 2*pi*fc * epsilon_0 * eps_r
+        self.material = em.CSX.AddMaterial(name, epsilon = eps_r, kappa = kappa, mue = ur)
         self.em = em
         self.name = name
         self.eps_r = eps_r
@@ -65,19 +65,7 @@ class Dielectric(Material):
         self.kappa = kappa
         self.type = 'dielectric'
         self.lossy = False # metal loss
-        em.materials[name] = self
-    def set_tanD(self, tanD, freq):
-        self.kappa = tanD * 2*pi*freq * epsilon_0 * self.eps_r;
-    # magnetic loss
-    def generate_octave(self):
-        retval = "CSX = AddMaterial( CSX, '{}' );\n".format(self.name)
-        optionals = ""
-        if self.ur:
-            optionals += ", 'Mue', {}".format(self.ur)
-        if self.kappa:
-            optionals += ", 'Kappa', {}".format(self.kappa)
-        retval += "CSX = SetMaterialProperty( CSX, '{}', 'Epsilon', {}{});\n".format(self.name, self.eps_r, optionals)
-        return retval
+        # magnetic loss
 
 class LumpedElement(Material):
     """ element_type = 'R' or 'C' or 'L' """
@@ -87,9 +75,7 @@ class LumpedElement(Material):
         self.element_type = element_type
         self.value = value
         self.direction = direction
-        em.materials[name] = self
-    def generate_octave(self):
-        return "CSX = AddLumpedElement( CSX, '{}', '{}', 'Caps', 0, '{}', {});\n".format(self.name, self.direction, self.element_type, self.value)
+        em.CSX.AddLumpedElement(name=self.name, caps=False, ny = self.direction, R=self.value)
 
 class Metal(Material):
     def __init__(self, em, name):
@@ -97,10 +83,7 @@ class Metal(Material):
         self.em = em
         self.name = name
         self.type = 'metal'
-        em.materials[name] = self
-    def generate_octave(self):
-        return "CSX = AddMetal( CSX, '{}' );\n".format(self.name)
-
+        self.material=em.CSX.AddMetal(name)
 
 class LossyMetal(Material):
     def __init__(self, em, name, conductivity=56e6, frequency=None, thickness=None, ur=1.0):
@@ -115,10 +98,7 @@ class LossyMetal(Material):
         self.name = name
         self.type = 'metal'
         self.lossy = True
-        em.materials[name] = self
-    def generate_octave(self):
-        return "CSX = AddConductingSheet( CSX, '{}', {}, {} );\n".format(self.name, self.conductivity, self.thickness)
-
+        self.material = em.AddConductingSheet(name, self.conductivity, self.thickness)
 
 class Object():
     def mirror(self, axes):
@@ -138,7 +118,7 @@ class Object():
         for i in range(count-1):
             self.duplicate("{}_{}".format(self.em.get_name(name), i+2)).offset(np.array(step)*(i+1))
 
-from polygon import Polygon
+from .polygon import Polygon
 
 class Box(Object):
     def __init__(self, em, name, material, priority, start, stop, padname = '1', layer='F.Cu'):
@@ -154,7 +134,7 @@ class Box(Object):
     def duplicate(self, name=None):
         return Box(self.em, name, self.material, self.priority, self.start, self.stop, self.padname)
     def generate_kicad(self, g):
-        if self.em.materials[self.material].__class__.__name__ == 'Dielectric':
+        if self.material.__class__.__name__ == 'Dielectric':
             return
         if self.padname == None:
             return
@@ -167,19 +147,14 @@ class Box(Object):
                   masked = True,
                   paste = False)
     def generate_octave(self):
-        if self.em.materials[self.material].__class__.__name__ == 'LossyMetal':
-            return self.generate_octave_lossy()
-        octave = "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, self.start, self.stop)
-        return octave
-    def generate_octave_lossy(self):
-        #octave = "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format('pec', self.priority, self.start, self.stop)
-        octave = "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, np.array([self.start[0], self.start[1], self.start[2]]), np.array([self.stop[0], self.stop[1], self.start[2]])) # bottom
-        octave += "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, np.array([self.start[0], self.start[1], self.stop[2]]), np.array([self.stop[0], self.stop[1], self.stop[2]])) # top
-        octave += "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, np.array([self.start[0], self.start[1], self.start[2]]), np.array([self.stop[0], self.start[1], self.stop[2]]))
-        octave += "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, np.array([self.start[0], self.stop[1], self.start[2]]), np.array([self.stop[0], self.stop[1], self.stop[2]]))
-        octave += "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, np.array([self.start[0], self.start[1], self.start[2]]), np.array([self.start[0], self.stop[1], self.stop[2]]))
-        octave += "CSX = AddBox(CSX, '{}', {}, {}, {});\n".format(self.material, self.priority, np.array([self.stop[0], self.start[1], self.start[2]]), np.array([self.stop[0], self.stop[1], self.stop[2]]))
-        return octave
+        self.material.material.AddBox(start=self.start, stop=self.stop,
+                                      priority=self.priority)
+        self.em.mesh.AddLine('x', self.start[0])
+        self.em.mesh.AddLine('y', self.start[1])
+        self.em.mesh.AddLine('z', self.start[2])
+        self.em.mesh.AddLine('x', self.stop[0])
+        self.em.mesh.AddLine('y', self.stop[1])
+        self.em.mesh.AddLine('z', self.stop[2])
 
 class Cylinder(Object):
     def __init__(self, em, name, material, priority, start, stop, radius):
@@ -195,8 +170,10 @@ class Cylinder(Object):
     def duplicate(self, name=None):
         return Cylinder(self.em, name, self.material, self.priority, self.start, self.stop, self.radius)
     def generate_octave(self):
-        octave = "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, self.start, self.stop, self.radius)
-        return octave
+        self.material.material.AddCylinder(priority=self.priority,
+                                           start=self.start,
+                                           stop=self.stop,
+                                           radius=self.radius)
 
 class Via(Object):
     """PCB via in Z direction
@@ -242,14 +219,13 @@ class Via(Object):
     def duplicate(self, name=None):
         return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
-        start = np.round(1000000.0*np.array([self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][0]]))/1e6
-        stop = np.round(1000000.0*np.array([self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][1]]))/1e6
-        octave = "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, start, stop, self.drillradius)
+        start = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][0]]
+        stop = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][1]]
+        self.material.material.AddCylinder(start=start, stop=stop, priority=self.priority, radius = self.drillradius)
         for z in self.z[1:]:
             start = [self.x, self.y, z[0]]
             stop = [self.x, self.y, z[1]]
-            octave += "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, start, stop, self.padradius)
-        return octave
+            self.material.material.AddCylinder(start=start, stop=stop, priority=self.priority, radius = self.padradius)
 
 class RoundPad(Object):
     """PCB pad in Z direction
@@ -290,11 +266,12 @@ class RoundPad(Object):
         self.x += val[0]
         self.y += val[1]
     def duplicate(self, name=None):
-        return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
+        return RoundPad(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
-        start = [self.x, self.y, self.z[0]]
-        stop = [self.x, self.y, self.z[1]]
-        return "CSX = AddCylinder(CSX, '{}', {}, {}, {}, {});\n".format(self.material, self.priority, start, stop, self.padradius)
+        self.material.material.AddCylinder(start = [self.x, self.y, self.z[0]],
+                                           stop = [self.x, self.y, self.z[1]],
+                                           priority=self.priority,
+                                           radius = self.padradius)
 
 class Port(Object):
     def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu'):
@@ -305,19 +282,21 @@ class Port(Object):
         self.z = z
         self.padname = padname
         self.layer = layer
-        em.nports += 1
-        self.portnumber = em.nports
+        self.portnumber = len(em.ports)
         name = "p" + str(self.portnumber)
         em.objects[name] = self
+        em.ports.append(self)
     def duplicate(self):
         return Port(self.em, self.start, self.stop, self.direction, self.z, padname = self.padname, layer = self.layer)
     def generate_octave(self):
-        dirtable = {'x': [1, 0, 0], 'y': [0, 1, 0], 'z': [0,0,1]};
-        excite = 0
-        if self.em.excitation_port == self.portnumber:
-            excite = 1
-        octave = "[CSX, port{{{}}}] = AddLumpedPort(CSX, 999, {}, {}, {}, {}, {}, {});\n".format(self.portnumber,self.portnumber,self.z,self.start,self.stop, openems_direction_vector(self.direction), excite)
-        return octave
+        #AddMSLPort
+        self.port = self.em.FDTD.AddLumpedPort(
+            self.portnumber,
+            R=self.z,
+            start=self.start,
+            stop=self.stop,
+            p_dir=self.direction,
+            excite=1.0 if self.em.excitation_port == self.portnumber else 0)
     def generate_kicad(self, g):
         if self.padname == None:
             return
@@ -327,77 +306,57 @@ class Port(Object):
         y = 500.0 * (self.start[1] + self.stop[1]) # mm
         g.add_pad(x,y,self.padname, layer = self.layer)
 
-class Mesh():
-    def __init__(self):
-        self.x = np.array([])
-        self.y = np.array([])
-        self.z = np.array([])
-    def add_x(self, x):
-        self.x = np.append(self.x, x)
-    def add_y(self, y):
-        self.y = np.append(self.y, y)
-    def add_z(self, z):
-        self.z = np.append(self.z, z)
-
-
 class OpenEMS:
-    def __init__(self, name, fmin=1e6, fmax=50e9):
-        self.max_timesteps = 1e6
-        self.end_criteria = 1e-6
+    def __init__(self, name, fmin=1e6, fmax=50e9,
+                 NrTS=1e6,
+                 EndCriteria=1e-6,
+                 #BC = {xmin xmax ymin ymax zmin zmax};
+                 boundaries = ['PEC', 'PEC', 'PEC', 'PEC', 'PEC', 'PEC']):
+        self.FDTD = openEMS(NrTS=NrTS, EndCriteria=EndCriteria)
+        self.FDTD.SetGaussExcite((fmin+fmax)/2.0, (fmax-fmin)/2.0)
+        self.FDTD.SetBoundaryCond(boundaries)
+        self.CSX = ContinuousStructure()
+        self.FDTD.SetCSX(self.CSX)
+        self.mesh = self.CSX.GetGrid()
+        self.mesh.SetDeltaUnit(1.0) # specify everything in m
         self.fmin = fmin
         self.fmax = fmax
         self.fsteps = 1601
-        self.fc = (fmin+fmax)/2.0
-        self.fo = self.fc-fmin
-        self.f_0 = 32e9
-        self.materials = {}
         self.objects = {}
         self.name = name
-        self.nports = 0
-        self.excitation_port = 1
+        self.ports = []
+        self.excitation_port = 0
         self.excite_ports = [1]
-        self.directory = '.'
-        self.boundaries = "'PEC' 'PEC' 'PEC' 'PEC' 'PEC' 'PEC'"
-        self.sim_path = "openems_data"
         self.metalloss = False
         self.via_offset_x = 0.0
         self.via_offset_y = 0.0
-        self.xgrid = None
+        self.xgrid = None # for plot
         self.ygrid = None
         self.legend_location = 2 # upper left
         self.options = ''
-        self.octave_mid = ''
-        self.octave_end = ''
         self.name_count = 0
-        try:
-            os.mkdir(self.sim_path)
-        except:
-            pass
         self.resolution = 0.0001
-        self.mesh = Mesh()
+
     def add_metal(self, name):
-        print "add_metal is deprecated - use openems.Metal() directly"
+        print("add_metal is deprecated - use openems.Metal() directly")
         return Metal(self, name)
-    def add_lossy_metal(self, name, conductivity=56e6, frequency=None, thickness=None, ur=1.0):
-        print "add_lossy_metal is deprecated - use openems.LossyMetal() directly"
-        return LossyMetal(self, name, conductivity, frequency, thickness, ur)
     def add_dielectric(self, name, eps_r=1.0, kappa = None, ur=1.0):
-        print "add_dielectric is deprecated - use openems.Dielectric() directly"
+        print("add_dielectric is deprecated - use openems.Dielectric() directly")
         return Dielectric(self, name, eps_r, kappa, ur)
     def add_lumped(self, name, element_type='R', value=50.0, direction = 'x'):
-        print "add_lumped is deprecated - use openems.LumpedElement() directly"
+        print("add_lumped is deprecated - use openems.LumpedElement() directly")
         return LumpedElement(self, name, element_type, value, direction)
     def add_box(self, name, material, priority, start, stop, padname='1'):
-        print "add_box is deprecated - use openems.Box() directly"
+        print("add_box is deprecated - use openems.Box() directly")
         return Box(self, name, material, priority, start, stop, padname)
     def add_port(self, start, stop, direction, z):
-        print "add_port is deprecated - use openems.Port() directly"
+        print("add_port is deprecated - use openems.Port() directly")
         return Port(self, start, stop, direction, z)
     def add_cylinder(self, name, material, priority, start, stop, radius):
-        print "add_cylinder is deprecated - use openems.Cylinder() directly"
+        print("add_cylinder is deprecated - use openems.Cylinder() directly")
         return Cylinder(self, name, material, priority, start, stop, radius)
     def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
-        print "add_via is deprecated - use openems.Via() directly"
+        print("add_via is deprecated - use openems.Via() directly")
         return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
     def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec', element_down=False, size='0201'):
         """ currently only supports 'x', 'y' for direction """
@@ -462,35 +421,56 @@ class OpenEMS:
         f.finish()
 
     def run_openems(self, options='view solve'):
-        octave = self.generate_octave_header()
-        for material in self.materials:
-            octave += self.materials[material].generate_octave()
+        cwd = os.getcwd()
+        basename = cwd + '/' + self.name
+        simpath = r'/tmp/openems_data'
+        if not os.path.exists(simpath):
+            os.mkdir(simpath)
+
         for object in self.objects:
-            octave += self.objects[object].generate_octave()
-        octave += self.generate_octave_footer(options)
-        with open(self.sim_path+"/sim.m", "w") as f:
-            f.write(octave)
-        os.system("rm -f {}".format(self.sim_path + "/ABORT"))
-        os.system("octave {}".format(self.sim_path + "/sim.m"))
+            self.objects[object].generate_octave()
+
+        self.mesh.SmoothMeshLines('x', self.resolution)
+        self.mesh.SmoothMeshLines('y', self.resolution)
+        self.mesh.SmoothMeshLines('z', self.resolution)
+
+        if 'view' in options:
+                CSX_file = simpath + '/csx.xml'
+                self.CSX.Write2XML(CSX_file)
+                os.system(r'AppCSXCAD "{}"'.format(CSX_file))
         if 'solve' in options:
-            if self.nports < 1:
+            self.FDTD.Run(simpath, verbose=3, cleanup=True)
+            f = np.linspace(self.fmin, self.fmax, self.fsteps)
+            for p in self.ports:
+                p.port.CalcPort(simpath, f, ref_impedance = 50)
+            nports = len(self.ports)
+
+            s = []
+
+            for p in range(nports):
+                s.append(self.ports[p].port.uf_ref / self.ports[0].port.uf_inc)
+            #    zratio = np.sqrt(self.objects["p" + str(self.excitation_port)].z / self.objects["p" + str(p+1)].z)
+                #footer += "s{0}{1} = {2} * port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port, zratio)
+                #ports += "s{}{} ".format(p+1, self.excitation_port)
+
+            if nports < 1:
                 return
-            s = scipy.io.loadmat(self.sim_path + "/sim.mat")
-            self.frequencies = s['f'][0]
-            self.s11 = s['s11'][0]
+
+            self.frequencies = f
             fig, ax = matplotlib.pyplot.subplots()
-            if self.nports > 1:
-                self.s21 = s['s21'][0]
-                ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s21)), label = 'dB(s21)')
-            ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s11)), label = 'dB(s11)')
-            if self.nports > 2:
-                self.s31 = s['s31'][0]
-                ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s31)), label = 'dB(s31)')
-            if self.nports > 3:
-                self.s41 = s['s41'][0]
-                ax.plot(self.frequencies/1e9, 20*np.log10(np.abs(self.s41)), label = 'dB(s41)')
-            if self.nports > 1:
-                save_s2p_symmetric(self.frequencies, self.s11, self.s21, self.name+".s2p")
+            s11 = s[0]
+            if nports > 1:
+                s21 = s[1]
+                ax.plot(f/1e9, 20*np.log10(np.abs(s21)), label = 'dB(s21)')
+                save_s2p_symmetric(f, s11, s21, basename+".s2p")
+            ax.plot(f/1e9, 20*np.log10(np.abs(s11)), label = 'dB(s11)')
+            if nports > 2:
+                s31 = s[2]
+                ax.plot(f/1e9, 20*np.log10(np.abs(s31)), label = 'dB(s31)')
+            if nports > 3:
+                s41 = s[3]
+                ax.plot(f/1e9, 20*np.log10(np.abs(s41)), label = 'dB(s41)')
+
             ax.set_xlabel('Frequency (GHz)')
             ax.set_ylabel('dB')
             if self.xgrid != None:
@@ -500,61 +480,9 @@ class OpenEMS:
             ax.grid(True)
             fig.tight_layout()
             ax.legend(loc=self.legend_location)
-            matplotlib.pyplot.savefig(self.name+".png")
-            matplotlib.pyplot.savefig(self.name+".svg")
-            matplotlib.pyplot.savefig(self.name+".pdf")
+            matplotlib.pyplot.savefig(basename+".png")
+            matplotlib.pyplot.savefig(basename+".svg")
+            matplotlib.pyplot.savefig(basename+".pdf")
             matplotlib.pyplot.show()
             print(len(self.frequencies))
             print(s)
-            # print os.system("/home/dlharmon/software/openEMS/openEMS/openEMS {}".format(filename+".xml"))
-
-    def generate_octave_header(self):
-        #oh = "close all\nclear\nclc\n"
-        oh = "unit = 1.0;\n" # specify everything in m
-        oh += "FDTD = InitFDTD('NrTS', {}, 'EndCriteria', {});\n".format(self.max_timesteps, self.end_criteria)
-        if not 'no_excite' in self.options:
-            oh += "FDTD = SetGaussExcite(FDTD, {}, {});\n".format(self.fo, self.fc)
-        #BC = {xmin xmax ymin ymax zmin zmax};
-        oh += "FDTD = SetBoundaryCond(FDTD, {{{}}});\n".format(self.boundaries)
-        oh += "CSX = InitCSX();\n" # setup CSXCAD geometry & mesh
-        return oh
-
-    def generate_octave_footer(self, options=None):
-        if not 'no_detect_edges' in self.options:
-            footer = "mesh = DetectEdges(CSX);\n"
-        else:
-            footer = "mesh.x = [];\n"
-            footer += "mesh.y = [];\n"
-            footer += "mesh.z= [];\n"
-        #if self.mesh.z:
-        footer += "mesh.x = [mesh.x, {}];\n".format(np.array(self.mesh.x).tolist())
-        footer += "mesh.y = [mesh.y, {}];\n".format(np.array(self.mesh.y).tolist())
-        footer += "mesh.z = [mesh.z, {}];\n".format(np.array(self.mesh.z).tolist())
-        if not 'no_smooth_mesh' in self.options:
-            footer += "mesh = SmoothMesh(mesh, {});\n".format(self.resolution)
-        footer += "CSX = DefineRectGrid(CSX, unit, mesh);\n"
-        footer += self.octave_mid
-        footer += "WriteOpenEMS('{}', FDTD, CSX );\n".format(self.sim_path + "/csx.xml")
-        if 'view' in options:
-            footer += "CSXGeomPlot('{}');\n".format(self.sim_path + "/csx.xml")
-        if 'solve' in options:
-            if 'remote' in options:
-                footer += "Settings.SSH.host = 'dlharmon@dlhdesktop';\n"
-                footer += "Settings.SSH.bin = '/home/dlharmon/software/openEMS/bin/openEMS.sh';\n"
-                footer += "RunOpenEMS('{}', '{}', '{}', Settings);\n".format(self.sim_path, "csx.xml", "")
-            else:
-                footer += "RunOpenEMS('{}', '{}');\n".format(self.sim_path, "csx.xml")
-            footer += "close all\n"
-            footer += "f = linspace({},{},{});\n".format(self.fmin, self.fmax, self.fsteps)
-            if self.nports > 1:
-                footer += "port = calcPort( port, '{}', f);\n".format(self.sim_path)
-            ports = ""
-            for p in range(self.nports):
-                zratio = np.sqrt(self.objects["p" + str(self.excitation_port)].z / self.objects["p" + str(p+1)].z)
-                footer += "s{0}{1} = {2} * port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port, zratio)
-                ports += "s{}{} ".format(p+1, self.excitation_port)
-            if self.nports > 0:
-                footer += "save {} f {} -mat4-binary\n".format(self.sim_path+"/sim.mat", ports)
-            footer += self.octave_end
-
-        return footer

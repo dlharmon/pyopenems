@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import openems
 
@@ -45,7 +43,7 @@ class Polygon(openems.Object):
         return self
 
     def rotate_ccw_90(self):
-        print "rotate_ccw_90() not supported for Polygon, ignoring"
+        print("rotate_ccw_90() not supported for Polygon, ignoring")
 
     def offset(self, val):
         """ only correct for xy plane, 2d """
@@ -53,7 +51,7 @@ class Polygon(openems.Object):
         return self
 
     def generate_kicad(self, g):
-        if self.em.materials[self.material].__class__.__name__ == 'Dielectric':
+        if self.material.__class__.__name__ == 'Dielectric':
             return
         if self.pcb_layer == None:
             return

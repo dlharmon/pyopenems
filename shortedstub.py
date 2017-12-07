@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from scipy.constants import pi, c, epsilon_0, mu_0, mil, inch
 mm = 0.001
 import openems

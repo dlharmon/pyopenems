@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from scipy.constants import pi, c, epsilon_0, mu_0, mil, inch
 mm = 0.001
 import openems
@@ -10,7 +9,7 @@ class Wilkinson():
         self.em = em
         self.metal_name = metal_name
         self.substrate_name = substrate_name
-        self.z = z # [bottom of substrate, top of substrate, top of metal] 
+        self.z = z # [bottom of substrate, top of substrate, top of metal]
         self.port_length = port_length
         self.priority = priority
         self.ms_width = ms_width
@@ -43,7 +42,7 @@ class Wilkinson():
         # fork line
         openems.Polygon(self.em, name = 'forkline',
                         material = self.metal_name,
-                        priority = self.priority, 
+                        priority = self.priority,
                         points = np.array([[0, y1],
                                            [0, y2],
                                            [x2+self.miter, y2],

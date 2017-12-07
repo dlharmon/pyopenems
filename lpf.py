@@ -1,17 +1,16 @@
-#!/usr/bin/env python
 from scipy.constants import pi, c, epsilon_0, mu_0
 mm = 0.001
 import openems
 import numpy as np
 
 class LPF():
-    def __init__(self, em, metal_name, substrate_name, z, port_length, 
+    def __init__(self, em, metal_name, substrate_name, z, port_length,
                  ms_width, section, box_width,
                  priority = 9):
         self.em = em
         self.metal_name = metal_name
         self.substrate_name = substrate_name
-        self.z = z # [bottom of substrate, top of substrate, top of metal] 
+        self.z = z # [bottom of substrate, top of substrate, top of metal]
         self.box_length = 2.0*(port_length) + np.sum(section[:,0])
         self.box_width = box_width
         self.port_length = port_length
@@ -49,7 +48,7 @@ class LPF():
         print points
         openems.Polygon(self.em, name = 'f',
                         material = self.metal_name,
-                        priority = self.priority, 
+                        priority = self.priority,
                         points = points,
                         elevation = self.z[1:],
                         normal_direction = 'z',

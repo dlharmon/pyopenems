@@ -1,5 +1,6 @@
 *.py[cod]
 *~
+*.kicad_mod
 
 # C extensions
 *.so

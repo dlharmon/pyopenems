@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from scipy.constants import pi, c, epsilon_0, mu_0, mil, inch
 mm = 0.001
 import openems
@@ -10,7 +9,7 @@ class Miter():
         self.em = em
         self.metal_name = metal_name
         self.substrate_name = substrate_name
-        self.z = z # [bottom of substrate, top of substrate, top of metal] 
+        self.z = z # [bottom of substrate, top of substrate, top of metal]
         self.port_length = port_length
         self.priority = priority
         self.ms_width = ms_width
@@ -34,11 +33,11 @@ class Miter():
         start = np.array([d2,  0.5*self.ms_width, self.z[1]])
         stop  = np.array([d3, -0.5*self.ms_width, self.z[2]])
         openems.Box(self.em, 'pad_2', self.metal_name, self.priority, start, stop, padname = '2')
-        
+
         # line
         openems.Polygon(self.em, name = 'miter_line',
                         material = self.metal_name,
-                        priority = self.priority, 
+                        priority = self.priority,
                         points = np.array([[-0.5*self.ms_width, d2],
                                            [ 0.5*self.ms_width, d2],
                                            [ 0.5*self.ms_width, 0.5*self.ms_width],
@@ -50,7 +49,7 @@ class Miter():
                         normal_direction = 'z',
                         pcb_layer = 'F.Cu',
                         pcb_width = 0.001)
-        
+
         # ports
         start = np.array([ 0.5*self.ms_width, d1, self.z[1]])
         stop  = np.array([-0.5*self.ms_width, d2, self.z[2]])

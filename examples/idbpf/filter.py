@@ -11,13 +11,12 @@ em.end_criteria = 1e-10
 em.fsteps = 1601
 fc = 7.12e9;
 eps_r = 3.66
-#em.add_lossy_metal('copper', frequency=fc, conductivity=56e6/3, ur=1.0)
 openems.Metal(em, 'copper')
 openems.Metal(em, 'pec')
 #em.via_offset_x = 5*mil
 #em.via_offset_y = 5*mil
 openems.Dielectric(em, 'sub', eps_r=eps_r).set_tanD(0.0035, freq=fc)
-        
+
 foil_thickness = 0.035*mm
 substrate_thickness = 22*mil
 ms_air_above = 2.0*mm
@@ -28,7 +27,7 @@ via_pad = 0.6*mm
 substrate_bottom = 0.0
 substrate_top = substrate_bottom + substrate_thickness
 foil_top = substrate_top + foil_thickness
-em.mesh.add_z(foil_top + ms_air_above)
+em.mesh.AddLine('z', foil_top + ms_air_above)
 
 from math import sqrt
 em.resolution = c/(em.fmax*sqrt(eps_r)) /100.0;

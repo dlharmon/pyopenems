@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 mm = 0.001
 import numpy as np
 import openems
