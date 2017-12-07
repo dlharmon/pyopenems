@@ -6,7 +6,7 @@ class IDBPF():
     def __init__(self,
                  em, # openems instance
                  sub, # substrate, define with openems.Dielectric()
-                 z = [], # z position vector, z[0] = substrate bottom, z[1] = substrate top, z[2] = foil top
+                 z = [], # z position, z[0] = sub bottom, z[1] = sub top, z[2] = foil top
                  space = [], # space between resonator fingers
                  rl = [], # length of resonator fingers
                  rw = [], # width of resonator fingers
@@ -28,7 +28,6 @@ class IDBPF():
         self.end_gap = end_gap
         self.ring_y_width = via_padradius * 2.0
         self.portlength = portlength
-        self.priority = 9
         self.feedwidth = feedwidth
         self.via_radius = via_radius
         self.via_padradius = via_padradius
@@ -51,7 +50,7 @@ class IDBPF():
             start = [x1, y, self.z[1]];
             y += self.rw[i]
             stop  = [x2, y, self.z[2]];
-            box = pec.AddBox(start, stop, self.priority, padname = '2')
+            box = pec.AddBox(start, stop, 9, padname = 'poly')
             box.mirror(mirrorstring[mirror])
             mirror = not mirror
             box2 = box.duplicate()
@@ -61,9 +60,9 @@ class IDBPF():
                             y=y-0.5*self.rw[i], z=via_z,
                             drillradius=self.via_radius,
                             padradius=self.via_padradius, padname='2')
-            v.mirror(mirrorstring[not mirror])
-            v2 = v.duplicate()
-            v2.mirror('xy')
+            v.duplicate().mirror('xy')
+            v.duplicate().mirror('x')
+            v.duplicate().mirror('y')
         mirror = not mirror
         # ports
         y1 = y
@@ -78,8 +77,8 @@ class IDBPF():
         p2 = p.duplicate().mirror('xy')
         # feed lines
         start = [px + 0.5*self.feedwidth, py, self.z[1]]
-        stop  = [px - 0.5*self.feedwidth, py - self.feedwidth, self.z[2]]
-        box = pec.AddBox(start, stop, self.priority, padname = '1')
+        stop  = [px - 0.5*self.feedwidth, y-0.5*self.rw[0], self.z[2]]
+        box = pec.AddBox(start, stop, 9, padname = '1')
         box.mirror(mirrorstring[mirror])
         box2 = box.duplicate()
         box2.mirror('xy')
@@ -98,5 +97,5 @@ class IDBPF():
         # grounded end metal
         em1 = pec.AddBox(start = [ring_ix, y2, self.z[1]],
                          stop = [ring_ix + 2.0*self.via_padradius, -y2, self.z[2]],
-                         priority=self.priority, padname = '2')
+                         priority=9, padname = '2')
         em1.duplicate().mirror('x')

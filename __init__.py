@@ -132,11 +132,20 @@ class Box(Object):
         self.layer = layer
         em.objects[self.name] = self
     def duplicate(self, name=None):
-        return Box(self.em, name, self.material, self.priority, self.start, self.stop, self.padname)
+        return Box(self.em, name, self.material, self.priority,
+                   self.start, self.stop, self.padname)
     def generate_kicad(self, g):
         if self.material.__class__.__name__ == 'Dielectric':
             return
         if self.padname == None:
+            return
+        if self.padname == 'poly': # use a polygon rather than a pad
+            x1 = self.start[0]
+            x2 = self.stop[0]
+            y1 = self.start[1]
+            y2 = self.stop[1]
+            points = np.array([[x1,y1],[x2,y1],[x2,y2],[x1,y2]])
+            g.add_polygon(points = 1000.0 * points, layer = self.layer, width = 1e-6)
             return
         g.add_pad(self.padname,
                   layer = self.layer,
