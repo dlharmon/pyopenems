@@ -52,6 +52,11 @@ class Material():
     def AddBox(self, start, stop, priority, padname=None):
         return Box(self.em, start=start, stop=stop, priority=priority,
                    name=None, material=self, padname=padname)
+    def AddPolygon(self, points, elevation, priority=1,
+                   normal_direction='z',
+                   pcb_layer = 'F.Cu',
+                   pcb_width = 0.0):
+        return Polygon(self, points, elevation, priority, normal_direction, pcb_layer, pcb_width)
 
 class Dielectric(Material):
     def __init__(self, em, name, eps_r=1.0, kappa = 0, ur=1.0, tand=0.0, fc = 0):

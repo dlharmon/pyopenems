@@ -1,15 +1,11 @@
 import numpy as np
 import openems
 
-np.set_printoptions(precision=8)
-
 class Polygon(openems.Object):
     def __init__(self,
-                 em,
+                 material,
                  points,
                  elevation,
-                 name=None,
-                 material='pec',
                  priority=1,
                  normal_direction = 'z',
                  pcb_layer = 'F.Cu',
@@ -30,9 +26,9 @@ class Polygon(openems.Object):
         self.pcb_layer = pcb_layer
         self.pcb_width = pcb_width
         self.normal_direction = normal_direction
-        self.em = em
-        name = self.em.get_name(name)
-        em.objects[name] = self
+        self.em = material.em
+        name = self.em.get_name(None)
+        self.em.objects[name] = self
 
     def mirror(self, axes):
         """ only correct for xy plane """
@@ -58,22 +54,18 @@ class Polygon(openems.Object):
         g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width = self.pcb_width)
 
     def generate_octave(self):
-        octave = ""
-        n = 1
-        octave += "p = 0;\n"
-        for p in self.points:
-            octave += "p(1,{}) = {}; p(2,{}) = {};\n".format(n, p[0], n, p[1])
-            n += 1
         height = self.elevation[1] - self.elevation[0]
-        octave += "CSX = AddLinPoly( CSX, '{}', {}, '{}', {}, p, {});\n".format(self.material, self.priority, self.normal_direction, round(self.elevation[0],8), round(height, 8))
-        return octave
+        print(np.swapaxes(self.points, 0, 1))
+        print(self.normal_direction)
+        self.material.material.AddLinPoly(np.swapaxes(self.points, 0, 1),
+                                          self.normal_direction,
+                                          self.elevation[0],
+                                          height)
 
-    def duplicate(self, name=None):
-        return Polygon(em = self.em,
+    def duplicate(self):
+        return Polygon(material = self.material,
                        points = self.points,
                        elevation = self.elevation,
-                       name = name,
-                       material = self.material,
                        priority = self.priority,
                        normal_direction = self.normal_direction,
                        pcb_layer = self.pcb_layer,
