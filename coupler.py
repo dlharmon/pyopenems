@@ -63,6 +63,7 @@ class Coupler():
              [ 1.0*xm + diff,  0.5*self.ms_width - self.main_line_width],
              [     xm - diff, -0.5*self.ms_width],
              [     x1,  -0.5*self.ms_width]])
+        self.em.mesh.AddLine('y', 0.5*self.ms_width - self.main_line_width)
         self.metal.AddPolygon(priority = self.priority,
                               points = ppoints,
                               elevation = self.z[1:],
@@ -88,6 +89,8 @@ class Coupler():
             l6 = l4.duplicate().mirror('y')
             l6.padname = '6'
 
+        self.em.mesh.AddLine('y', yc0)
+        self.em.mesh.AddLine('y', yc1)
         p = self.metal.AddPolygon(
             priority = self.priority,
             points = np.array([[xc1 + self.miter,  yc0],
