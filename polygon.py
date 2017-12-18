@@ -55,8 +55,6 @@ class Polygon(openems.Object):
 
     def generate_octave(self):
         height = self.elevation[1] - self.elevation[0]
-        print(np.swapaxes(self.points, 0, 1))
-        print(self.normal_direction)
         self.material.material.AddLinPoly(np.swapaxes(self.points, 0, 1),
                                           self.normal_direction,
                                           self.elevation[0],
