@@ -57,6 +57,9 @@ class Material():
                    pcb_layer = 'F.Cu',
                    pcb_width = 0.0):
         return Polygon(self, points, elevation, priority, normal_direction, pcb_layer, pcb_width)
+    def AddCylinder(self, start, stop, radius, priority):
+        return Cylinder(self, priority, start, stop, radius)
+
 
 class Dielectric(Material):
     def __init__(self, em, name, eps_r=1.0, kappa = 0, ur=1.0, tand=0.0, fc = 0):
@@ -171,16 +174,16 @@ class Box(Object):
         self.em.mesh.AddLine('z', self.stop[2])
 
 class Cylinder(Object):
-    def __init__(self, em, name, material, priority, start, stop, radius):
+    def __init__(self, material, priority, start, stop, radius):
         self.material = material
         self.start = np.array(start)
         self.stop = np.array(stop)
-        self.em = em
-        self.name = self.em.get_name(name)
+        self.em = material.em
+        self.name = self.em.get_name(None)
         self.radius = radius
         self.padname = '1'
         self.priority = priority
-        em.objects[self.name] = self
+        self.em.objects[self.name] = self
     def duplicate(self, name=None):
         return Cylinder(self.em, name, self.material, self.priority, self.start, self.stop, self.radius)
     def generate_octave(self):
@@ -363,12 +366,8 @@ class OpenEMS:
     def add_box(self, name, material, priority, start, stop, padname='1'):
         print("add_box is deprecated - use openems.Box() directly")
         return Box(self, name, material, priority, start, stop, padname)
-    def add_port(self, start, stop, direction, z):
-        print("add_port is deprecated - use openems.Port() directly")
+    def AddPort(self, start, stop, direction, z):
         return Port(self, start, stop, direction, z)
-    def add_cylinder(self, name, material, priority, start, stop, radius):
-        print("add_cylinder is deprecated - use openems.Cylinder() directly")
-        return Cylinder(self, name, material, priority, start, stop, radius)
     def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
         print("add_via is deprecated - use openems.Via() directly")
         return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
