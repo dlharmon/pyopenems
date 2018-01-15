@@ -1,158 +1,109 @@
-mm = 0.001
 import openems
 import numpy as np
 
-class Coupler():
-    def __init__(self,
-                 em,
-                 sub, # substrate, define with openems.Dielectric()
-                 metal,
-                 miter, z, port_length,
-                 box_length, ms_width, coupler_gap, cpw_gap, box_y,
-                 coupler_length, coupler_width, priority = 9,
-                 pin_length = 0.2*mm, main_line_width = None,
-                 feed_coupled=False,
-                 dual=False): # if dual, coupler_width should = ms_width, cpw_gap = None
-        self.em = em
-        self.metal = metal
-        self.sub = sub
-        self.z = z # [bottom of substrate, top of substrate, top of metal]
-        self.box_length = box_length
-        self.box_y = box_y
-        self.port_length = port_length
-        self.priority = priority
-        self.ms_width = ms_width
-        self.coupler_gap = coupler_gap
-        self.cpw_gap = cpw_gap
-        self.coupler_length = coupler_length
-        self.coupler_width = coupler_width
-        self.miter = miter
-        self.pin_length = pin_length
-        if main_line_width == None:
-            self.main_line_width = coupler_width
-        else:
-            self.main_line_width = main_line_width
-        self.feed_coupled = feed_coupled
-        self.dual = dual
+def generate(sub, metal, z,
+             coupler_length, miter, coupler_width, coupler_gap,
+             ms_width, port_length, pin_length, box_length, box_y, main_line_width=None,
+             cpw_gap=None, feed_coupled=False, dual=False, priority=9):
+    if main_line_width == None:
+        main_line_width = coupler_width
+    em = sub.em
+    # substrate
+    start = np.array([ 0.5*box_length, box_y[0], z[0]])
+    stop  = np.array([-0.5*box_length, box_y[1], z[1]])
+    sub.AddBox(start, stop, 1)
+    # through line ends (pads)
+    x0 = -0.5*box_length
+    x1 = x0 + port_length
+    start = np.array([x1, 0.5*ms_width, z[1]])
+    stop  = np.array([x1 + pin_length, -0.5*ms_width, z[2]])
+    l1 = metal.AddBox(start, stop, priority, padname = '1')
+    l2 = l1.duplicate("line_p2")
+    l2.mirror('x')
+    l2.padname = '2'
+    xc1 = -0.5*coupler_length - 0.5*ms_width
+    xc2 = xc1 + ms_width
+    xm = xc1 + miter
+    # through line middle
+    diff = 0.5 * np.abs(ms_width - main_line_width)
+    ppoints = np.array(
+        [[     x1,  0.5*ms_width],
+         [-1.0*x1,  0.5*ms_width],
+         [-1.0*x1, -0.5*ms_width],
+         [-1.0*xm + diff, -0.5*ms_width],
+         [-1.0*xm - diff,  0.5*ms_width - main_line_width],
+         [ 1.0*xm + diff,  0.5*ms_width - main_line_width],
+         [     xm - diff, -0.5*ms_width],
+         [     x1,  -0.5*ms_width]])
+    em.mesh.AddLine('y', 0.5*ms_width - main_line_width)
+    metal.AddPolygon(priority = priority, points = ppoints, elevation = z[1:],
+                     normal_direction = 'z',
+                     pcb_layer = 'F.Cu',
+                     pcb_width = 1e-6)
+    # coupled line
+    yc0 = 0.5*ms_width + coupler_gap
+    yc1 = yc0 + coupler_width
+    yc4 = box_y[1]
+    yc3 = yc4 - port_length
+    yc2 = yc3 - pin_length
+    # pads
+    start = np.array([xc1, yc2, z[1]])
+    stop  = np.array([xc2, yc3, z[2]])
+    l3 = metal.AddBox(start, stop, priority=priority, padname = '3')
+    l4 = l3.duplicate("line_p4").mirror('x')
+    l4.padname = '4'
+    if dual:
+        l5 = l3.duplicate().mirror('y')
+        l5.padname = '5'
+        l6 = l4.duplicate().mirror('y')
+        l6.padname = '6'
 
-    def generate(self):
-        # substrate
-        start = np.array([ 0.5*self.box_length, self.box_y[0], self.z[0]])
-        stop  = np.array([-0.5*self.box_length, self.box_y[1], self.z[1]])
-        self.sub.AddBox(start, stop, 1)
-        # through line ends (pads)
-        x0 = -0.5*self.box_length
-        x1 = x0 + self.port_length
-        start = np.array([x1,                    0.5*self.ms_width, self.z[1]])
-        stop  = np.array([x1 + self.pin_length, -0.5*self.ms_width, self.z[2]])
-        l1 = self.metal.AddBox(start, stop, self.priority, padname = '1')
-        l2 = l1.duplicate("line_p2")
-        l2.mirror('x')
-        l2.padname = '2'
-        xc1 = -0.5*self.coupler_length - 0.5*self.ms_width
-        xc2 = xc1 + self.ms_width
-        xm = xc1 + self.miter
-        # through line middle
-        diff = 0.5 * np.abs(self.ms_width - self.main_line_width)
-        ppoints = np.array(
-            [[     x1,  0.5*self.ms_width],
-             [-1.0*x1,  0.5*self.ms_width],
-             [-1.0*x1, -0.5*self.ms_width],
-             [-1.0*xm + diff, -0.5*self.ms_width],
-             [-1.0*xm - diff,  0.5*self.ms_width - self.main_line_width],
-             [ 1.0*xm + diff,  0.5*self.ms_width - self.main_line_width],
-             [     xm - diff, -0.5*self.ms_width],
-             [     x1,  -0.5*self.ms_width]])
-        self.em.mesh.AddLine('y', 0.5*self.ms_width - self.main_line_width)
-        self.metal.AddPolygon(priority = self.priority,
-                              points = ppoints,
-                              elevation = self.z[1:],
-                              normal_direction = 'z',
-                              pcb_layer = 'F.Cu',
-                              pcb_width = 0.001*mm)
-        # coupled line
-        yc0 = 0.5*self.ms_width + self.coupler_gap
-        yc1 = yc0 + self.coupler_width
-        yc4 = self.box_y[1]
-        yc3 = yc4 - self.port_length
-        yc2 = yc3 - self.pin_length
-        # pads
-        start = np.array([xc1, yc2, self.z[1]])
-        stop  = np.array([xc2, yc3, self.z[2]])
-        l3 = self.metal.AddBox(start, stop, priority=self.priority, padname = '3')
-        l4 = l3.duplicate("line_p4")
-        l4.mirror('x')
-        l4.padname = '4'
-        if self.dual:
-            l5 = l3.duplicate().mirror('y')
-            l5.padname = '5'
-            l6 = l4.duplicate().mirror('y')
-            l6.padname = '6'
+    em.mesh.AddLine('y', yc0)
+    em.mesh.AddLine('y', yc1)
+    p = metal.AddPolygon(
+        priority = priority,
+        points = np.array([[xc1 + miter,  yc0],
+                           [xc1, yc0 + miter],
+                           [xc1, yc3],
+                           [xc2, yc3],
+                           [xc2, yc1],
+                           [-1.0*xc2, yc1],
+                           [-1.0*xc2, yc3],
+                           [-1.0*xc1, yc3],
+                           [-1.0*xc1, yc0 + miter],
+                           [-1.0*xc1 - miter, yc0]]),
+        elevation = z[1:],
+        normal_direction = 'z',
+        pcb_layer = 'F.Cu',
+        pcb_width = 1e-6)
 
-        self.em.mesh.AddLine('y', yc0)
-        self.em.mesh.AddLine('y', yc1)
-        p = self.metal.AddPolygon(
-            priority = self.priority,
-            points = np.array([[xc1 + self.miter,  yc0],
-                               [xc1, yc0 + self.miter],
-                               [xc1, yc3],
-                               [xc2, yc3],
-                               [xc2, yc1],
-                               [-1.0*xc2, yc1],
-                               [-1.0*xc2, yc3],
-                               [-1.0*xc1, yc3],
-                               [-1.0*xc1, yc0 + self.miter],
-                               [-1.0*xc1 - self.miter, yc0]]),
-            elevation = self.z[1:],
-            normal_direction = 'z',
-            pcb_layer = 'F.Cu',
-            pcb_width = 0.001*mm)
+    if dual:
+        p.duplicate().mirror('y')
 
-        if self.dual:
-            p.duplicate().mirror('y')
+    if not feed_coupled:
+        # main line ports
+        start = [x0, -0.5*ms_width, z[1]]
+        stop  = [x1,  0.5*ms_width, z[2]]
+        openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('x')
+    # coupled line ports
+    start = [xc1, yc4, z[1]]
+    stop  = [xc2, yc3, z[2]]
+    cp1 = openems.Port(em, start, stop, direction='y', z=50)
+    cp2 = cp1.duplicate().mirror('x')
+    if dual:
+        cp1.duplicate().mirror('y')
+        cp2.duplicate().mirror('y')
 
-        if not self.feed_coupled:
-            # main line ports
-            start = [x0, -0.5*self.ms_width, self.z[1]]
-            stop  = [x1,  0.5*self.ms_width, self.z[2]]
-            openems.Port(self.em,
-                         start,
-                         stop,
-                         direction='x',
-                         z=50).duplicate().mirror('x')
-        # coupled line ports
-        start = [xc1, yc4, self.z[1]]
-        stop  = [xc2, yc3, self.z[2]]
-        cp1 = openems.Port(self.em,
-                           start,
-                           stop,
-                           direction='y',
-                           z=50)
-        cp2 = cp1.duplicate().mirror('x')
-        if self.dual:
-            cp1.duplicate().mirror('y')
-            cp2.duplicate().mirror('y')
-
-        if self.feed_coupled:
-            # main line ports
-            start = [x0, -0.5*self.ms_width, self.z[1]]
-            stop  = [x1,  0.5*self.ms_width, self.z[2]]
-            openems.Port(self.em,
-                         start,
-                         stop,
-                         direction='x',
-                         z=50).duplicate().mirror('x')
-        # ground via
-        if self.cpw_gap != None:
-            start = np.array([-0.5*self.box_length,
-                              -0.5*self.ms_width - self.cpw_gap,
-                              self.z[0]])
-            stop  = np.array([ 0.5*self.box_length,
-                               self.box_y[0],
-                               self.z[2]])
-            metal.AddBox(start, stop, self.priority, padname = None)
-            start = np.array([-0.5*self.box_length,
-                              0.5*self.ms_width + self.cpw_gap,
-                              self.z[0]])
-            stop  = np.array([xc1 - self.cpw_gap, self.box_y[1], self.z[2]])
-            metal.AddBox(start, stop, padname = None, priority = self.priority).duplicate().mirror('x')
+    if feed_coupled:
+        # main line ports
+        start = [x0, -0.5*ms_width, z[1]]
+        stop  = [x1,  0.5*ms_width, z[2]]
+        openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('x')
+    # ground via
+    if cpw_gap != None:
+        start = np.array([-0.5*box_length, -0.5*ms_width - cpw_gap, z[0]])
+        stop  = np.array([ 0.5*box_length, box_y[0], z[2]])
+        metal.AddBox(start, stop, priority, padname = None)
+        start = np.array([-0.5*box_length, 0.5*ms_width + cpw_gap, z[0]])
+        stop  = np.array([xc1 - cpw_gap, box_y[1], z[2]])
+        metal.AddBox(start, stop, padname = None, priority = priority).duplicate().mirror('x')
