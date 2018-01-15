@@ -486,9 +486,9 @@ class OpenEMS:
 
             ax.set_xlabel('Frequency (GHz)')
             ax.set_ylabel('dB')
-            if self.xgrid != None:
+            if hasattr(self.xgrid, "__len__"):
                 ax.set_xticks(self.xgrid)
-            if self.ygrid != None:
+            if hasattr(self.ygrid, "__len__"):
                 ax.set_yticks(self.ygrid)
             ax.grid(True)
             fig.tight_layout()
