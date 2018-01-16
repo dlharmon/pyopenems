@@ -58,7 +58,8 @@ class Polygon(openems.Object):
         self.material.material.AddLinPoly(np.swapaxes(self.points, 0, 1),
                                           self.normal_direction,
                                           self.elevation[0],
-                                          height)
+                                          height,
+                                          priority=self.priority)
 
     def duplicate(self):
         return Polygon(material = self.material,
