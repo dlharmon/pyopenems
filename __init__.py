@@ -185,7 +185,7 @@ class Cylinder(Object):
         self.priority = priority
         self.em.objects[self.name] = self
     def duplicate(self, name=None):
-        return Cylinder(self.em, name, self.material, self.priority, self.start, self.stop, self.radius)
+        return Cylinder(self.material, self.priority, self.start, self.stop, self.radius)
     def generate_octave(self):
         self.material.material.AddCylinder(priority=self.priority,
                                            start=self.start,

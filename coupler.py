@@ -1,10 +1,23 @@
 import openems
 import numpy as np
 
-def generate(sub, metal, z,
-             coupler_length, miter, coupler_width, coupler_gap,
-             ms_width, port_length, pin_length, box_length, box_y, main_line_width=None,
-             cpw_gap=None, feed_coupled=False, dual=False, priority=9):
+def generate(sub,
+             metal,
+             z,
+             coupler_length,
+             miter,
+             coupler_width,
+             coupler_gap,
+             ms_width,
+             port_length,
+             pin_length,
+             box_length,
+             box_y,
+             main_line_width=None,
+             cpw_gap=None,
+             feed_coupled=False,
+             dual=False,
+             priority=9):
     if main_line_width == None:
         main_line_width = coupler_width
     em = sub.em
@@ -62,16 +75,19 @@ def generate(sub, metal, z,
     em.mesh.AddLine('y', yc1)
     p = metal.AddPolygon(
         priority = priority,
-        points = np.array([[xc1 + miter,  yc0],
+        points = np.array([
+            [0, yc0 + 1e-4],
+            [xc1 + miter,  yc0],
                            [xc1, yc0 + miter],
                            [xc1, yc3],
                            [xc2, yc3],
                            [xc2, yc1],
-                           [-1.0*xc2, yc1],
+                           [0, yc1+1e-4],
+                           [-1.0*xc2, yc1+9e-4],
                            [-1.0*xc2, yc3],
                            [-1.0*xc1, yc3],
-                           [-1.0*xc1, yc0 + miter],
-                           [-1.0*xc1 - miter, yc0]]),
+                           [-1.0*xc1, yc0 + 9e-4 + miter],
+                           [-1.0*xc1 - miter, yc0 + 9e-4]]),
         elevation = z[1:],
         normal_direction = 'z',
         pcb_layer = 'F.Cu',
