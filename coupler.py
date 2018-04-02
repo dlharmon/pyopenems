@@ -5,7 +5,6 @@ def generate(sub,
              metal,
              z,
              coupler_length,
-             miter,
              coupler_width,
              coupler_gap,
              ms_width,
@@ -13,17 +12,14 @@ def generate(sub,
              pin_length,
              box_length,
              box_y,
-             main_line_width=None,
-             cpw_gap=None,
              feed_coupled=False,
              dual=False,
+             sub_top = 0.0,
              priority=9):
-    if main_line_width == None:
-        main_line_width = coupler_width
     em = sub.em
     # substrate
     start = np.array([ 0.5*box_length, box_y[0], z[0]])
-    stop  = np.array([-0.5*box_length, box_y[1], z[1]])
+    stop  = np.array([-0.5*box_length, box_y[1], z[1]+sub_top])
     sub.AddBox(start, stop, 1)
     # through line ends (pads)
     x0 = -0.5*box_length
@@ -36,19 +32,13 @@ def generate(sub,
     l2.padname = '2'
     xc1 = -0.5*coupler_length - 0.5*ms_width
     xc2 = xc1 + ms_width
-    xm = xc1 + miter
     # through line middle
-    diff = 0.5 * np.abs(ms_width - main_line_width)
     ppoints = np.array(
         [[     x1,  0.5*ms_width],
          [-1.0*x1,  0.5*ms_width],
          [-1.0*x1, -0.5*ms_width],
-         [-1.0*xm + diff, -0.5*ms_width],
-         [-1.0*xm - diff,  0.5*ms_width - main_line_width],
-         [ 1.0*xm + diff,  0.5*ms_width - main_line_width],
-         [     xm - diff, -0.5*ms_width],
          [     x1,  -0.5*ms_width]])
-    em.mesh.AddLine('y', 0.5*ms_width - main_line_width)
+    em.mesh.AddLine('y', -0.5*ms_width)
     metal.AddPolygon(priority = priority, points = ppoints, elevation = z[1:],
                      normal_direction = 'z',
                      pcb_layer = 'F.Cu',
@@ -73,21 +63,24 @@ def generate(sub,
 
     em.mesh.AddLine('y', yc0)
     em.mesh.AddLine('y', yc1)
+    lcx = np.linspace(xc1,-xc1,10)
+    xi = np.abs(np.linspace(0 ,1,10))
+    lcy = yc0 + xi * 0.2e-3 + xi*xi * 0.1e-3 + xi*xi*xi * 0.2e-3
+    lowercoupled = np.array((lcx, lcy)).swapaxes(0,1)[::-1]
+    ucx = np.linspace(xc2,-xc2,10)
+    ucy = yc1 + xi * 0.2e-3 + xi*xi * 0.1e-3 + xi*xi*xi * 0.2e-3
+    uppercoupled = np.array((ucx, ucy)).swapaxes(0,1)
     p = metal.AddPolygon(
         priority = priority,
-        points = np.array([
-            [0, yc0 + 1e-4],
-            [xc1 + miter,  yc0],
-                           [xc1, yc0 + miter],
-                           [xc1, yc3],
-                           [xc2, yc3],
-                           [xc2, yc1],
-                           [0, yc1+1e-4],
-                           [-1.0*xc2, yc1+9e-4],
-                           [-1.0*xc2, yc3],
-                           [-1.0*xc1, yc3],
-                           [-1.0*xc1, yc0 + 9e-4 + miter],
-                           [-1.0*xc1 - miter, yc0 + 9e-4]]),
+        points = np.concatenate((
+            lowercoupled,
+            np.array([
+                [xc1, yc3],
+                [xc2, yc3]]),
+            uppercoupled,
+            np.array([
+                [-1.0*xc2, yc3],
+                [-1.0*xc1, yc3]]))),
         elevation = z[1:],
         normal_direction = 'z',
         pcb_layer = 'F.Cu',
@@ -115,11 +108,3 @@ def generate(sub,
         start = [x0, -0.5*ms_width, z[1]]
         stop  = [x1,  0.5*ms_width, z[2]]
         openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('x')
-    # ground via
-    if cpw_gap != None:
-        start = np.array([-0.5*box_length, -0.5*ms_width - cpw_gap, z[0]])
-        stop  = np.array([ 0.5*box_length, box_y[0], z[2]])
-        metal.AddBox(start, stop, priority, padname = None)
-        start = np.array([-0.5*box_length, 0.5*ms_width + cpw_gap, z[0]])
-        stop  = np.array([xc1 - cpw_gap, box_y[1], z[2]])
-        metal.AddBox(start, stop, padname = None, priority = priority).duplicate().mirror('x')

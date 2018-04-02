@@ -2,38 +2,47 @@ mm = 0.001
 import numpy as np
 import openems
 
-class ECBPF():
-    def __init__(self, em, nresonators):
-        self.n = nresonators
-        self.em = em
-        self.metal_name = 'pec'
-        self.metal_z = [0, 0.2*mm]
-        self.space = [0.15*mm, 0.25*mm, 0.3*mm]
-        self.length = [2.6*mm]*self.n
-        self.width = [0.15*mm]*self.n
-        self.priority = 9
-    def generate(self):
-        rl_max = np.max(self.length)
-        # finger 2
-        x = 0.5*rl_max
-        y = 0.5*self.space[2]
-        start = [x - self.length[2], y, self.metal_z[0]];
-        y += self.width[2]
-        stop  = [x + self.length[2], y, self.metal_z[1]];
-        openems.Box(self.em, 'r2', self.metal_name, self.priority, start, stop).duplicate('r2m').mirror('xy')
-        # finger 1
-        x += rl_max
-        y += self.space[1]
-        start = [x - self.length[1], y, self.metal_z[0]];
-        y += self.width[1]
-        stop  = [x + self.length[1], y, self.metal_z[1]];
-        openems.Box(self.em, 'r1', self.metal_name, self.priority, start, stop).duplicate('r1m').mirror('xy')
-        # finger 0 (half length coupling)
-        x += rl_max
-        y += self.space[0]
-        start = [x - self.length[0], y, self.metal_z[0]];
-        y += self.width[0]
-        stop  = [x, y, self.metal_z[1]];
-        openems.Box(self.em, 'r0', self.metal_name, self.priority, start, stop).duplicate('r0m').mirror('xy')
-        self.xmax = x
-        self.ymax = y
+def ecbpf(em, rl, rw, space, feedwidth, portlength, z, ms50w = 0.5*mm):
+    rl_max = np.max(rl)
+    # finger 2
+    x = 0.5*rl_max
+    y = 0.5*space[2]
+    start = [x - rl[2], y, z[1]];
+    y += rw[2]
+    stop  = [x + rl[2], y, z[2]];
+    openems.Box(em, 'r2', 'pec', 9, start, stop).duplicate('r2m').mirror('xy')
+    # finger 1
+    x += rl_max
+    y += space[1]
+    start = [x - rl[1], y, z[1]];
+    y += rw[1]
+    stop  = [x + rl[1], y, z[2]];
+    openems.Box(em, 'r1', 'pec', 9, start, stop).duplicate('r1m').mirror('xy')
+    # finger 0 (half length coupling)
+    x += rl_max
+    y += space[0]
+    start = [x - rl[0], y, z[1]];
+    stop  = [x, y+rw[0], z[2]];
+    openems.Box(em, 'r0', 'pec', 9, start, stop).duplicate().mirror('xy')
+    # ports ext
+    start = [x, y, z[1]];
+    stop  = [x + rw[0], y+rw[0], z[2]];
+    openems.Box(em, 'pext', 'pec', 9, start, stop).duplicate().mirror('xy')
+    # ports ext
+    x += rw[0]
+    start = [x, y+rw[0], z[1]];
+    stop  = [x + 0.5*mm, y+rw[0]-ms50w, z[2]];
+    openems.Box(em, 'pext2', 'pec', 9, start, stop).duplicate().mirror('xy')
+    x += 0.5*mm
+    # ports
+    start = [x, y+rw[0], z[1]];
+    stop  = [x+0.2*mm, y+rw[0]-ms50w, z[2]];
+    openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('xy')
+    x += 0.2*mm
+    y += 0.5*mm
+
+    y += 0.25*mm
+    # substrate
+    start = [x, y,  z[0]]
+    stop  = [-x, -y, z[1]]
+    sub = openems.Box(em, None, 'sub', 1, start, stop);
