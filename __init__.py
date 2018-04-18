@@ -55,9 +55,9 @@ class Material():
         self.lossy = False
         self.em = em
         self.name = name
-    def AddBox(self, start, stop, priority, padname=None):
+    def AddBox(self, start, stop, priority, padname=None, layer='F.Cu'):
         return Box(self.em, start=start, stop=stop, priority=priority,
-                   name=None, material=self, padname=padname)
+                   name=None, material=self, padname=padname, layer=layer)
     def AddPolygon(self, points, elevation, priority=1,
                    normal_direction='z',
                    pcb_layer = 'F.Cu',
@@ -146,7 +146,7 @@ class Box(Object):
         em.objects[self.name] = self
     def duplicate(self, name=None):
         return Box(self.em, name, self.material, self.priority,
-                   self.start, self.stop, self.padname)
+                   self.start, self.stop, self.padname, self.layer)
     def generate_kicad(self, g):
         if self.material.__class__.__name__ == 'Dielectric':
             return

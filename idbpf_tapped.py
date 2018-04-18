@@ -6,6 +6,7 @@ class IDBPF():
     def __init__(self,
                  em, # openems instance
                  sub, # substrate, define with openems.Dielectric()
+                 lidz = 0.0,
                  z = [], # z position, z[0] = sub bottom, z[1] = sub top, z[2] = foil top
                  space = [], # space between resonator fingers
                  rl = [], # length of resonator fingers
@@ -16,6 +17,7 @@ class IDBPF():
                  end_gap = 0.3*mm, # space between the end of a resonator and ground
                  via_radius = 0.15*mm, # radius of the via drills
                  via_padradius = 0.3*mm, # radius of the via pads
+                 pcb_layer = 'F.Cu', # Kicad layer
                  mask_thickness = 0, # set to non-zero to enable solder mask over filter
                  mask = None, # mask, define with openems.Dielectric()
     ):
@@ -31,14 +33,16 @@ class IDBPF():
         self.feedwidth = feedwidth
         self.via_radius = via_radius
         self.via_padradius = via_padradius
+        self.pcb_layer = pcb_layer
         self.mask_thickness = mask_thickness
         self.tapoffset = tapoffset
         self.mask = mask
+        self.lidz = lidz
     def generate(self):
         pec = openems.Metal(self.em, 'pec_filter')
         ring_ix = 0.5 * (np.max(self.rl) + self.end_gap)
         ring_ox = ring_ix + 2.0 * self.via_padradius
-        via_z = [[self.z[0], self.z[2]], [self.z[1], self.z[2]]]
+        via_z = [[self.z[0], self.z[1]+self.lidz], [self.z[1], self.z[2]]]
         # fingers
         y = -0.5*self.space[-1:][0]
         mirror = False
@@ -50,7 +54,7 @@ class IDBPF():
             start = [x1, y, self.z[1]];
             y += self.rw[i]
             stop  = [x2, y, self.z[2]];
-            box = pec.AddBox(start, stop, 9, padname = 'poly')
+            box = pec.AddBox(start, stop, 9, padname = 'poly', layer=self.pcb_layer)
             box.mirror(mirrorstring[mirror])
             mirror = not mirror
             box2 = box.duplicate()
@@ -78,7 +82,7 @@ class IDBPF():
         # feed lines
         start = [px + 0.5*self.feedwidth, py, self.z[1]]
         stop  = [px - 0.5*self.feedwidth, y-0.5*self.rw[0], self.z[2]]
-        box = pec.AddBox(start, stop, 9, padname = '1')
+        box = pec.AddBox(start, stop, 9, padname = '1', layer=self.pcb_layer)
         box.mirror(mirrorstring[mirror])
         box2 = box.duplicate()
         box2.mirror('xy')
@@ -86,7 +90,7 @@ class IDBPF():
         # substrate
         start = np.array([ring_ox, y2, self.z[0]])
         stop  = openems.mirror(start, 'xy')
-        stop[2] = self.z[1]
+        stop[2] = self.z[1]+self.lidz
         sub = self.sub.AddBox(start, stop, 1);
         # mask
         if self.mask_thickness > 0.0:
@@ -97,5 +101,5 @@ class IDBPF():
         # grounded end metal
         em1 = pec.AddBox(start = [ring_ix, y2, self.z[1]],
                          stop = [ring_ix + 2.0*self.via_padradius, -y2, self.z[2]],
-                         priority=9, padname = '2')
+                         priority=9, padname = '2', layer=self.pcb_layer)
         em1.duplicate().mirror('x')
