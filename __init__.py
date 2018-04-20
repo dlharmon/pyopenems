@@ -448,9 +448,13 @@ class OpenEMS:
         for object in self.objects:
             self.objects[object].generate_octave()
 
-        self.mesh.SmoothMeshLines('x', self.resolution)
-        self.mesh.SmoothMeshLines('y', self.resolution)
-        self.mesh.SmoothMeshLines('z', self.resolution)
+        import collections
+        if not isinstance(self.resolution, collections.Sequence):
+            self.resolution = np.ones(3) * self.resolution
+
+        self.mesh.SmoothMeshLines('x', self.resolution[0])
+        self.mesh.SmoothMeshLines('y', self.resolution[1])
+        self.mesh.SmoothMeshLines('z', self.resolution[2])
 
         if 'view' in options:
                 CSX_file = simpath + '/csx.xml'
