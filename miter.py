@@ -4,11 +4,11 @@ import openems
 import numpy as np
 
 class Miter():
-    def __init__(self, em, metal_name, substrate_name, miter, z, port_length,
+    def __init__(self, em, metal, substrate, miter, z, port_length,
                  ms_width, box_size, priority = 9):
         self.em = em
-        self.metal_name = metal_name
-        self.substrate_name = substrate_name
+        self.metal = metal
+        self.substrate = substrate
         self.z = z # [bottom of substrate, top of substrate, top of metal]
         self.port_length = port_length
         self.priority = priority
@@ -24,19 +24,18 @@ class Miter():
         # substrate
         start = np.array([ 0.5*self.box_size,  0.5*self.box_size, self.z[0]])
         stop  = np.array([-0.5*self.box_size, -0.5*self.box_size, self.z[1]])
-        openems.Box(self.em, 'substrate', self.substrate_name, 1, start, stop);
+        openems.Box(self.substrate, 1, start, stop);
 
         # port pads
         start = np.array([ 0.5*self.ms_width, d2, self.z[1]])
         stop  = np.array([-0.5*self.ms_width, d3, self.z[2]])
-        openems.Box(self.em, 'pad_1', self.metal_name, self.priority, start, stop, padname = '1')
+        openems.Box(self.metal, self.priority, start, stop, padname = '1')
         start = np.array([d2,  0.5*self.ms_width, self.z[1]])
         stop  = np.array([d3, -0.5*self.ms_width, self.z[2]])
-        openems.Box(self.em, 'pad_2', self.metal_name, self.priority, start, stop, padname = '2')
+        openems.Box(self.metal, self.priority, start, stop, padname = '2')
 
         # line
-        openems.Polygon(self.em, name = 'miter_line',
-                        material = self.metal_name,
+        openems.Polygon(self.metal,
                         priority = self.priority,
                         points = np.array([[-0.5*self.ms_width, d2],
                                            [ 0.5*self.ms_width, d2],

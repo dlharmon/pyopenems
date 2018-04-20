@@ -56,8 +56,8 @@ class Material():
         self.em = em
         self.name = name
     def AddBox(self, start, stop, priority, padname=None, pcb_layer='F.Cu'):
-        return Box(self.em, start=start, stop=stop, priority=priority,
-                   name=None, material=self, padname=padname, pcb_layer=pcb_layer)
+        return Box(self, start=start, stop=stop, priority=priority,
+                   padname=padname, pcb_layer=pcb_layer)
     def AddPolygon(self, points, elevation, priority=1,
                    normal_direction='z',
                    pcb_layer = 'F.Cu',
@@ -134,18 +134,18 @@ class Object():
 from .polygon import Polygon
 
 class Box(Object):
-    def __init__(self, em, name, material, priority, start, stop, padname = '1', pcb_layer='F.Cu'):
+    def __init__(self, material, priority, start, stop, padname = '1', pcb_layer='F.Cu'):
         self.priority = priority
         self.material = material
         self.start = np.array(start)
         self.stop = np.array(stop)
-        self.em = em
-        self.name = self.em.get_name(name)
+        self.em = material.em
+        self.name = self.em.get_name(None)
         self.padname = padname
         self.layer = pcb_layer
-        em.objects[self.name] = self
+        self.em.objects[self.name] = self
     def duplicate(self, name=None):
-        return Box(self.em, name, self.material, self.priority,
+        return Box(self.material, self.priority,
                    self.start, self.stop, self.padname, self.layer)
     def generate_kicad(self, g):
         if self.material.__class__.__name__ == 'Dielectric':
@@ -209,7 +209,7 @@ class Via(Object):
     drill radius
     pad rad
     """
-    def __init__(self, em, name, material, priority, x, y, z, drillradius, padradius, padname='1'):
+    def __init__(self, material, priority, x, y, z, drillradius, padradius, padname='1'):
         self.material = material
         self.priority = priority
         self.x = x
@@ -217,10 +217,10 @@ class Via(Object):
         self.z = z
         self.drillradius = drillradius
         self.padradius = padradius
-        self.em = em
-        self.name = self.em.get_name(name)
+        self.em = material.em
+        self.name = self.em.get_name(None)
         self.padname = padname
-        em.objects[self.name] = self
+        self.em.objects[self.name] = self
     def mirror(self, axes):
         if 'x' in axes:
             self.x *= -1.0
@@ -239,7 +239,7 @@ class Via(Object):
         self.x += val[0]
         self.y += val[1]
     def duplicate(self, name=None):
-        return Via(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
+        return Via(self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
         start = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][0]]
         stop = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][1]]
@@ -359,34 +359,19 @@ class OpenEMS:
         self.name_count = 0
         self.resolution = 0.0001
 
-    def add_metal(self, name):
-        print("add_metal is deprecated - use openems.Metal() directly")
-        return Metal(self, name)
-    def add_dielectric(self, name, eps_r=1.0, kappa = None, ur=1.0):
-        print("add_dielectric is deprecated - use openems.Dielectric() directly")
-        return Dielectric(self, name, eps_r, kappa, ur)
-    def add_lumped(self, name, element_type='R', value=50.0, direction = 'x'):
-        print("add_lumped is deprecated - use openems.LumpedElement() directly")
-        return LumpedElement(self, name, element_type, value, direction)
-    def add_box(self, name, material, priority, start, stop, padname='1'):
-        print("add_box is deprecated - use openems.Box() directly")
-        return Box(self, name, material, priority, start, stop, padname)
     def AddPort(self, start, stop, direction, z):
         return Port(self, start, stop, direction, z)
-    def add_via(self, name, material, priority, x, y, z, drillradius, padradius, padname = '1'):
-        print("add_via is deprecated - use openems.Via() directly")
-        return Via(self, name, material, priority, x, y, z, drillradius, padradius, padname)
-    def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric_name='alumina', metal_name='pec', element_down=False, size='0201'):
+    def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric=None, metal=None, element_down=False, size='0201'):
         """ currently only supports 'x', 'y' for direction """
         element_name = name + "_element"
-        LumpedElement(self, element_name, element_type='R', value = value, direction = direction)
+        element = LumpedElement(self, element_name, element_type='R', value = value, direction = direction)
         # resistor end caps
         start = np.array([-0.15*mm, -0.25*mm, 0])
         stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
         if size == '0402':
             start = np.array([-0.25*mm, -0.5*mm, 0])
             stop  = np.array([0.25*mm, -0.5*mm/2, 0.35*mm])
-        cap1 = Box(self, name+"_end_cap", metal_name, priority, start, stop, padname = None)
+        cap1 = Box(metal, priority, start, stop, padname = None)
         cap2 = cap1.duplicate(name+"+_end_cap2")
         cap2.mirror('y')
         # resistor body
@@ -395,7 +380,7 @@ class OpenEMS:
         if size == '0402':
             start = np.array([-0.25, -0.47, 0.02])*mm
             stop  = np.array([0.25, 0.47, 0.33])*mm
-        body = Box(self, name+"_body", dielectric_name, priority + 1, start, stop, padname = None)
+        body = Box(dielectric, priority + 1, start, stop, padname = None)
         # resistor element
         if element_down:
             zoff = 0.0
@@ -406,7 +391,7 @@ class OpenEMS:
         if size == '0402':
             start = np.array([-0.2, -0.25, 0+zoff])*mm
             stop  = np.array([0.2, 0.25, 0.02+zoff])*mm
-        element = Box(self, element_name, element_name, priority + 1, start, stop, padname = None)
+        element = Box(element, priority + 1, start, stop, padname = None)
         # reposition
         if invert:
             cap1.mirror('z')

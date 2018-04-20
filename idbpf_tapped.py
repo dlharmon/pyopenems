@@ -54,12 +54,12 @@ class IDBPF():
             start = [x1, y, self.z[1]];
             y += self.rw[i]
             stop  = [x2, y, self.z[2]];
-            box = pec.AddBox(start, stop, 9, padname = 'poly', layer=self.pcb_layer)
+            box = openems.Box(pec, 9, start, stop, padname = 'poly', pcb_layer=self.pcb_layer)
             box.mirror(mirrorstring[mirror])
             mirror = not mirror
             box2 = box.duplicate()
             box2.mirror('xy')
-            v = openems.Via(self.em, None, pec, 2,
+            v = openems.Via(pec, priority=2,
                             x=ring_ix+self.via_padradius,
                             y=y-0.5*self.rw[i], z=via_z,
                             drillradius=self.via_radius,
@@ -82,7 +82,7 @@ class IDBPF():
         # feed lines
         start = [px + 0.5*self.feedwidth, py, self.z[1]]
         stop  = [px - 0.5*self.feedwidth, y-0.5*self.rw[0], self.z[2]]
-        box = pec.AddBox(start, stop, 9, padname = '1', layer=self.pcb_layer)
+        box = openems.Box(pec, 9, start, stop, padname = '1', pcb_layer=self.pcb_layer)
         box.mirror(mirrorstring[mirror])
         box2 = box.duplicate()
         box2.mirror('xy')
@@ -91,15 +91,15 @@ class IDBPF():
         start = np.array([ring_ox, y2, self.z[0]])
         stop  = openems.mirror(start, 'xy')
         stop[2] = self.z[1]+self.lidz
-        sub = self.sub.AddBox(start, stop, 1);
+        sub = openems.Box(self.sub, 1, start, stop)
         # mask
         if self.mask_thickness > 0.0:
             start = np.array([ring_ox, y2, self.z[1]])
             stop  = openems.mirror(start, 'xy')
             stop[2] += self.mask_thickness
-            mask.AddBox(start, stop, 1);
+            openems.Box(mask, 1, start, stop)
         # grounded end metal
-        em1 = pec.AddBox(start = [ring_ix, y2, self.z[1]],
+        em1 = openems.Box(pec, 9, start = [ring_ix, y2, self.z[1]],
                          stop = [ring_ix + 2.0*self.via_padradius, -y2, self.z[2]],
-                         priority=9, padname = '2', layer=self.pcb_layer)
+                         padname = '2', pcb_layer=self.pcb_layer)
         em1.duplicate().mirror('x')

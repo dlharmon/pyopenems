@@ -35,12 +35,12 @@ em.resolution = c/(f_max*sqrt(3.0)) /130.0; #resolution of lambda/50
 # substrate
 start = np.array([0.5*box_length, 0.5*box_width, substrate_bottom])
 stop  = openems.mirror(start, 'xy') + np.array([0, 0, substrate_top])
-is680.AddBox(start, stop, 1)
+openems.Box(is680, 1, start, stop)
 
 # line
 start = np.array([-0.5*box_length+port_length, 0.5*ms_width, substrate_top])
 stop  = np.array([0.5*ms_width-notch, -0.5*ms_width, foil_top])
-copper.AddBox(start, stop, 1)
+openems.Box(copper, 1, start, stop)
 
 # ground via
 start = np.array([1.55*mm, 0.5*ms_width+0.15*mm, foil_top])
@@ -56,7 +56,7 @@ stop  = np.array([0.5*box_length, -0.5*box_width, 0.0])
 # line
 start = np.array([0.5*ms_width, 0.5*box_width-port_length, substrate_top])
 stop  = np.array([-0.5*ms_width, -0.5*ms_width+notch, foil_top])
-copper.AddBox(start, stop, 1)
+openems.Box(copper, 1, start, stop)
 
 # common port
 start = [0.5*ms_width, 0.5*box_width, substrate_top]

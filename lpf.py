@@ -16,14 +16,14 @@ class LPF():
         # substrate
         start = np.array([ 0.5*self.box_length, 0.5*self.box_width, self.z[0]])
         stop  = np.array([-0.5*self.box_length, -0.5*self.box_width, self.z[1]])
-        self.sub.AddBox(start, stop, 1)
+        openems.Box(self.sub, 1, start, stop)
         # pads
         x0 = -0.5*self.box_length
         x1 = x0 + self.port_length
         x2 = x1 + self.ms_width
         start = np.array([x1,  0.5*self.ms_width, self.z[1]])
         stop  = np.array([x2, -0.5*self.ms_width, self.z[2]])
-        l1 = self.metal.AddBox(start, stop, 9, padname = '1')
+        l1 = openems.Box(self.metal, 9, start, stop, padname = '1')
         l2 = l1.duplicate("line_p2").mirror('x')
         l2.padname = '2'
         x = x1
