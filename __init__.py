@@ -55,9 +55,9 @@ class Material():
         self.lossy = False
         self.em = em
         self.name = name
-    def AddBox(self, start, stop, priority, padname=None, layer='F.Cu'):
+    def AddBox(self, start, stop, priority, padname=None, pcb_layer='F.Cu'):
         return Box(self.em, start=start, stop=stop, priority=priority,
-                   name=None, material=self, padname=padname, layer=layer)
+                   name=None, material=self, padname=padname, pcb_layer=pcb_layer)
     def AddPolygon(self, points, elevation, priority=1,
                    normal_direction='z',
                    pcb_layer = 'F.Cu',
@@ -134,7 +134,7 @@ class Object():
 from .polygon import Polygon
 
 class Box(Object):
-    def __init__(self, em, name, material, priority, start, stop, padname = '1', layer='F.Cu'):
+    def __init__(self, em, name, material, priority, start, stop, padname = '1', pcb_layer='F.Cu'):
         self.priority = priority
         self.material = material
         self.start = np.array(start)
@@ -142,7 +142,7 @@ class Box(Object):
         self.em = em
         self.name = self.em.get_name(name)
         self.padname = padname
-        self.layer = layer
+        self.layer = pcb_layer
         em.objects[self.name] = self
     def duplicate(self, name=None):
         return Box(self.em, name, self.material, self.priority,
