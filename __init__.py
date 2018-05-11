@@ -82,13 +82,13 @@ class Dielectric(Material):
 
 class LumpedElement(Material):
     """ element_type = 'R' or 'C' or 'L' """
-    def __init__(self, em, name, element_type='R', value=50.0, direction = 'x'):
+    def __init__(self, em, name=None, element_type='R', value=50.0, direction = 'x'):
         self.em = em
-        self.name = name
+        self.name = self.em.get_name(name)
         self.element_type = element_type
         self.value = value
         self.direction = direction
-        em.CSX.AddLumpedElement(name=self.name, caps=False, ny = self.direction, R=self.value)
+        self.material =  em.CSX.AddLumpedElement(name=self.name, caps=False, ny = self.direction, R=self.value)
 
 class Metal(Material):
     def __init__(self, em, name):
@@ -363,15 +363,14 @@ class OpenEMS:
         return Port(self, start, stop, direction, z)
     def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric=None, metal=None, element_down=False, size='0201'):
         """ currently only supports 'x', 'y' for direction """
-        element_name = name + "_element"
-        element = LumpedElement(self, element_name, element_type='R', value = value, direction = direction)
+        element = LumpedElement(self, name, element_type='R', value = value, direction = direction)
         # resistor end caps
         start = np.array([-0.15*mm, -0.25*mm, 0])
         stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
         if size == '0402':
             start = np.array([-0.25*mm, -0.5*mm, 0])
             stop  = np.array([0.25*mm, -0.5*mm/2, 0.35*mm])
-        cap1 = Box(metal, priority, start, stop, padname = None)
+        cap1 = metal.AddBox(start, stop, priority=priority, padname = None)
         cap2 = cap1.duplicate(name+"+_end_cap2")
         cap2.mirror('y')
         # resistor body
@@ -380,7 +379,7 @@ class OpenEMS:
         if size == '0402':
             start = np.array([-0.25, -0.47, 0.02])*mm
             stop  = np.array([0.25, 0.47, 0.33])*mm
-        body = Box(dielectric, priority + 1, start, stop, padname = None)
+        body = dielectric.AddBox(start, stop, priority=priority+1, padname = None)
         # resistor element
         if element_down:
             zoff = 0.0
@@ -391,7 +390,7 @@ class OpenEMS:
         if size == '0402':
             start = np.array([-0.2, -0.25, 0+zoff])*mm
             stop  = np.array([0.2, 0.25, 0.02+zoff])*mm
-        element = Box(element, priority + 1, start, stop, padname = None)
+        element = element.AddBox(start, stop, priority=priority+1, padname = None)
         # reposition
         if invert:
             cap1.mirror('z')
