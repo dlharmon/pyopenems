@@ -365,7 +365,7 @@ class OpenEMS:
         """ currently only supports 'x', 'y' for direction """
         element = LumpedElement(self, name, element_type='R', value = value, direction = direction)
         # resistor end caps
-        start = np.array([-0.15*mm, -0.25*mm, 0])
+        start = np.array([-0.15*mm, -0.3*mm, 0])
         stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
         if size == '0402':
             start = np.array([-0.25*mm, -0.5*mm, 0])
