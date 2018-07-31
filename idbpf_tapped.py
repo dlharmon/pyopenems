@@ -20,6 +20,7 @@ class IDBPF():
                  pcb_layer = 'F.Cu', # Kicad layer
                  mask_thickness = 0, # set to non-zero to enable solder mask over filter
                  mask = None, # mask, define with openems.Dielectric()
+                 endmetal = True, # add metal to filter ends
     ):
         self.em = em
         self.sub = sub
@@ -38,6 +39,7 @@ class IDBPF():
         self.tapoffset = tapoffset
         self.mask = mask
         self.lidz = lidz
+        self.endmetal = endmetal
     def generate(self):
         pec = openems.Metal(self.em, 'pec_filter')
         ring_ix = 0.5 * (np.max(self.rl) + self.end_gap)
@@ -64,9 +66,13 @@ class IDBPF():
                             y=y-0.5*self.rw[i], z=via_z,
                             drillradius=self.via_radius,
                             padradius=self.via_padradius, padname='2')
+            if not mirror:
+                v.mirror('x')
             v.duplicate().mirror('xy')
-            v.duplicate().mirror('x')
-            v.duplicate().mirror('y')
+            if self.endmetal:
+                v.duplicate().mirror('y')
+                v.duplicate().mirror('x')
+
         mirror = not mirror
         # ports
         y1 = y
@@ -99,7 +105,8 @@ class IDBPF():
             stop[2] += self.mask_thickness
             openems.Box(mask, 1, start, stop)
         # grounded end metal
-        em1 = openems.Box(pec, 9, start = [ring_ix, y2, self.z[1]],
-                         stop = [ring_ix + 2.0*self.via_padradius, -y2, self.z[2]],
-                         padname = '2', pcb_layer=self.pcb_layer)
-        em1.duplicate().mirror('x')
+        if self.endmetal:
+            em1 = openems.Box(pec, 9, start = [ring_ix, y2, self.z[1]],
+                              stop = [ring_ix + 2.0*self.via_padradius, -y2, self.z[2]],
+                              padname = '2', pcb_layer=self.pcb_layer)
+            em1.duplicate().mirror('x')
