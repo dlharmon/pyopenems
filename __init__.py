@@ -456,9 +456,6 @@ class OpenEMS:
 
             for p in range(nports):
                 s.append(self.ports[p].port.uf_ref / self.ports[0].port.uf_inc)
-            #    zratio = np.sqrt(self.objects["p" + str(self.excitation_port)].z / self.objects["p" + str(p+1)].z)
-                #footer += "s{0}{1} = {2} * port{{{0}}}.uf.ref./ port{{{1}}}.uf.inc;\n".format(p+1, self.excitation_port, zratio)
-                #ports += "s{}{} ".format(p+1, self.excitation_port)
 
             if nports < 1:
                 return
