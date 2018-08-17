@@ -49,7 +49,6 @@ def save_s2p_symmetric(f, s11, s21, filename):
     with open(filename, "w") as f:
         f.write(fdata)
 
-
 class Material():
     def __init__(self, em, name):
         self.lossy = False
@@ -333,7 +332,9 @@ class OpenEMS:
                  NrTS=1e6,
                  EndCriteria=1e-6,
                  #BC = {xmin xmax ymin ymax zmin zmax};
-                 boundaries = ['PEC', 'PEC', 'PEC', 'PEC', 'PEC', 'PEC']):
+                 boundaries = ['PEC', 'PEC', 'PEC', 'PEC', 'PEC', 'PEC'],
+                 fsteps = 1601
+    ):
         self.FDTD = openEMS(NrTS=NrTS, EndCriteria=EndCriteria)
         self.FDTD.SetGaussExcite((fmin+fmax)/2.0, (fmax-fmin)/2.0)
         self.FDTD.SetBoundaryCond(boundaries)
@@ -343,7 +344,7 @@ class OpenEMS:
         self.mesh.SetDeltaUnit(1.0) # specify everything in m
         self.fmin = fmin
         self.fmax = fmax
-        self.fsteps = 1601
+        self.fsteps = fsteps
         self.objects = {}
         self.name = name
         self.ports = []
