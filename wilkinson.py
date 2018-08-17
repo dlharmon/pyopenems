@@ -29,7 +29,9 @@ def generate(em,
              w = [0.127*mm, 0.152*mm, 0.19*mm, 0.23*mm],
              port_length = 0.2*mm,
              ms_width = 0.36*mm,
-             endspace = 0.5 * mm):
+             endspace = 0.5 * mm,
+             resistor_size='0402'
+):
     alumina = openems.Dielectric(em, 'alumina', eps_r=9.8)
     metal = openems.Metal(em, 'pec_wilkinson')
     n = len(rv)
@@ -72,16 +74,20 @@ def generate(em,
                     pcb_layer = 'F.Cu',
                     pcb_width = 0.001)
 
+    # x at 2 port side
+    x0 = (n*4 - 1) * r + endspace
+    x1 = x0 - port_length
+
     # output lines
-    start = np.array([(n*4 - 1)*r+endspace - port_length, 0.25*mm, z[1]])
-    stop  = np.array([(n*4 - 1)*r-0.25*mm, 0.25*mm+ms_width, z[2]])
+    start = np.array([x1, 0.2*mm, z[1]])
+    stop  = np.array([(n*4 - 1)*r-0.1*mm, 0.2*mm+ms_width, z[2]])
     lp2 = metal.AddBox(start, stop, priority=priority, padname = '2')
     lp3 = lp2.duplicate("line_p3").mirror('y')
     lp3.padname = '3'
 
     # coupled line ports
-    start = [(n*4 - 1)*r+endspace - port_length, 0.25*mm, z[1]]
-    stop  = [(n*4 - 1)*r+endspace,  0.25*mm+ms_width, z[2]]
+    start = [x0 - port_length, 0.2*mm, z[1]]
+    stop  = [x0,  0.2*mm+ms_width, z[2]]
     openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('y')
 
     # main line port
@@ -98,4 +104,4 @@ def generate(em,
                         value=rv[i], invert=False, priority=9, dielectric=alumina,
                         metal=metal,
                         element_down=False,
-                        size = '0402')
+                        size = resistor_size)
