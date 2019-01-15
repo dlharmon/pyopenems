@@ -35,15 +35,15 @@ def db_angle(s):
     angle = float(180.0*np.angle(s)/pi)
     return "{:>12f} {:>12f}".format(logmag, angle)
 
-def save_s1p(f, s11, filename):
-    fdata = "# GHz S DB R 50\n"
+def save_s1p(f, s11, filename, z):
+    fdata = "# GHz S DB R {}\n".format(z)
     for i in range(len(f)):
         fdata += "{0:>12f} {1}\n".format(f[i]/1e9, db_angle(s11[i]))
     with open(filename, "w") as f:
         f.write(fdata)
 
-def save_s2p_symmetric(f, s11, s21, filename):
-    fdata = "# GHz S DB R 50\n"
+def save_s2p_symmetric(f, s11, s21, filename, z):
+    fdata = "# GHz S DB R {}\n".format(z)
     for i in range(len(f)):
         fdata += "{0:>12f} {1} {2} {2} {1}\n".format(f[i]/1e9, db_angle(s11[i]), db_angle(s21[i]))
     with open(filename, "w") as f:
@@ -423,7 +423,7 @@ class OpenEMS:
             self.objects[object].generate_kicad(g)
         f.finish()
 
-    def run_openems(self, options='view solve'):
+    def run_openems(self, options='view solve', z=50):
         cwd = os.getcwd()
         basename = cwd + '/' + self.name
         simpath = r'/tmp/openems_data'
@@ -449,7 +449,7 @@ class OpenEMS:
             self.FDTD.Run(simpath, verbose=3, cleanup=True)
             f = np.linspace(self.fmin, self.fmax, self.fsteps)
             for p in self.ports:
-                p.port.CalcPort(simpath, f, ref_impedance = 50)
+                p.port.CalcPort(simpath, f, ref_impedance = z)
             nports = len(self.ports)
 
             s = []
@@ -464,11 +464,11 @@ class OpenEMS:
             fig, ax = matplotlib.pyplot.subplots()
             s11 = s[0]
             if nports == 1:
-                save_s1p(f, s11, basename+".s1p")
+                save_s1p(f, s11, basename+".s1p", z=z)
             if nports > 1:
                 s21 = s[1]
                 ax.plot(f/1e9, 20*np.log10(np.abs(s21)), label = 'dB(s21)')
-                save_s2p_symmetric(f, s11, s21, basename+".s2p")
+                save_s2p_symmetric(f, s11, s21, basename+".s2p", z=z)
             ax.plot(f/1e9, 20*np.log10(np.abs(s11)), label = 'dB(s11)')
             if nports > 2:
                 s31 = s[2]
