@@ -5,7 +5,9 @@
 Hirose HK-R-SR2-1 2.92 mm connector, footprint is compatible with
 HRM(G)-300-468B-1 (SMA) and Rosenberger 03K721-40MS3 (3.5
 mm). Transition to microstrip on opposite side of an OSHPark 4 layer
-PCB. This is optimized for DC - 20 GHz, usable to beyond 40 GHz.
+PCB. The [Kicad footprint file](vert_connector_ms_oshpark.kicad_mod) is
+manually edited to add mask clearance, copper clearance and mounting
+holes.
 
 ### Response
 ![response plot](images/vert_connector_ms_oshpark.png "response plot")
