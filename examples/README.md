@@ -7,7 +7,8 @@ HRM(G)-300-468B-1 (SMA) and Rosenberger 03K721-40MS3 (3.5
 mm). Transition to microstrip on opposite side of an OSHPark 4 layer
 PCB. The [Kicad footprint file](vert_connector_ms_oshpark.kicad_mod) is
 manually edited to add mask clearance, copper clearance and mounting
-holes.
+holes. See [Breakout PCBs]( https://gitlab.com/harmoninstruments/breakout-pcbs/tree/master) 
+for usage in a project.
 
 ### Response
 ![response plot](images/vert_connector_ms_oshpark.png "response plot")
