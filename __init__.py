@@ -208,13 +208,15 @@ class Via(Object):
     drill radius
     pad rad
     """
-    def __init__(self, material, priority, x, y, z, drillradius, padradius, padname='1'):
+    def __init__(self, material, priority, x, y, z, drillradius, padradius, padname='1',
+                 wall_thickness=0):
         self.material = material
         self.priority = priority
         self.x = x
         self.y = y
         self.z = z
         self.drillradius = drillradius
+        self.wall_thickness = wall_thickness
         self.padradius = padradius
         self.em = material.em
         self.name = self.em.get_name(None)
@@ -242,7 +244,8 @@ class Via(Object):
     def generate_octave(self):
         start = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][0]]
         stop = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][1]]
-        self.material.material.AddCylinder(start=start, stop=stop, priority=self.priority, radius = self.drillradius)
+        self.material.material.AddCylinder(start=start, stop=stop, priority=self.priority,
+                                           radius = self.drillradius + self.wall_thickness)
         for z in self.z[1:]:
             start = [self.x, self.y, z[0]]
             stop = [self.x, self.y, z[1]]
