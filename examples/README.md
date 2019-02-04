@@ -1,5 +1,15 @@
 # Examples
 
+## Vertical 2.92 mm connector (vert_connector_ms_oshpark.py)
+
+Hirose HK-R-SR2-1 2.92 mm connector, footprint is compatible with
+HRM(G)-300-468B-1 (SMA) and Rosenberger 03K721-40MS3 (3.5
+mm). Transition to microstrip on opposite side of an OSHPark 4 layer
+PCB. This is optimized for DC - 20 GHz, usable to beyond 40 GHz.
+
+### Response
+![response plot](images/vert_connector_ms_oshpark.png "response plot")
+
 ## Capacitor Ground Cutout (capacitor_ground_cutout.py)
 
 ### Usage
