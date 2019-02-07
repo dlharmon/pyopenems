@@ -4,19 +4,6 @@ mm = 0.001
 import openems
 import numpy as np
 
-def arc(x, y, r, a0, a1):
-    angles = np.linspace(a0,a1,32)
-    return r*np.exp(1j*angles) + x + 1j*y
-
-def complex_to_xy(a):
-    rv = np.zeros((len(a),2))
-    for i in range(len(a)):
-        rv[i][0] = a[i].real
-        rv[i][1] = a[i].imag
-    return rv
-
-cat = np.concatenate
-
 em = openems.OpenEMS('vert_connector_ms_oshpark', EndCriteria = 1e-5, fmin = 0e6, fmax = 50e9,
                      boundaries = ['PEC', 'PEC', 'PEC', 'PEC', 'PML_12', 'PEC'])
 em.fsteps = 1601
@@ -54,13 +41,13 @@ def planar_fullbox(sub, z, priority=1):
 
 def planar_fullbox_center_hole(subs, z, r, priority=1):
     x = 0.5*box_length
-    y = 0.5*box_width * 1.0j
-    outside = np.array([0+y, x+y, x-y, 0-y])
-    inside = arc(0,0, r, -np.pi*0.5, np.pi*0.5)
+    y = 0.5*box_width
+    outside = np.array([[0,y], [x,y], [x,-y], [0,-y]])
+    inside = openems.arc(0,0, r, -np.pi*0.5, np.pi*0.5)
     openems.Polygon(subs,
                     priority=priority,
                     pcb_layer=None,
-                    points = complex_to_xy(cat((inside, outside))),
+                    points = np.concatenate((inside, outside)),
                     elevation = z,
                     normal_direction = 'z').duplicate().mirror('x')
 

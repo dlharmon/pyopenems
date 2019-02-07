@@ -12,6 +12,19 @@ from openEMS import openEMS
 
 np.set_printoptions(precision=8)
 
+# convert an array of complex numbers to an array of [x,y]
+def complex_to_xy(a):
+    rv = np.zeros((len(a),2))
+    for i in range(len(a)):
+        rv[i][0] = a[i].real
+        rv[i][1] = a[i].imag
+    return rv
+
+# generate an array of [x,y] for an arc
+def arc(x, y, r, a0, a1, npoints=32):
+    angles = np.linspace(a0,a1,npoints)
+    return complex_to_xy(r*np.exp(1j*angles) + x + 1j*y)
+
 def mirror(point, axes):
     retval = np.array(point).copy()
     if 'x' in axes:

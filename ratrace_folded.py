@@ -3,17 +3,7 @@ import openems
 import numpy as np
 pi = np.pi
 cat = np.concatenate
-
-def arc(x, y, r, a0, a1):
-    angles = np.linspace(a0,a1,32)
-    return r*np.exp(1j*angles) + x + 1j*y
-
-def complex_to_xy(a):
-    rv = np.zeros((len(a),2))
-    for i in range(len(a)):
-        rv[i][0] = a[i].real
-        rv[i][1] = a[i].imag
-    return rv
+arc = openems.arc
 
 def ratrace(
         metal, substrate,
@@ -58,7 +48,7 @@ def ratrace(
     l = cat((lo, li[::-1]))
     metal.AddPolygon(
         priority = priority,
-        points = complex_to_xy(l),
+        points = l,
         elevation = z[1:],
         normal_direction = 'z',
         pcb_layer = 'F.Cu',
@@ -67,12 +57,12 @@ def ratrace(
     # inner loop
     lo = arc(np.pi*r1/2.0 - lq, 0, r1+0.5*w, 0.5*pi, 1.5*pi)
     li = arc(np.pi*r1/2.0 - lq, 0, r1-0.5*w, 0.5*pi, 1.5*pi)
-    lo = cat((lo, [0.5*w - 1j*(r1+0.5*w), 0.5*w - 1j*(r1-0.5*w)]))
-    li = cat(([0.5*w + 1j*(r1+0.5*w), 0.5*w + 1j*(r1-0.5*w)], li))
+    lo = cat((lo, [[0.5*w, -(r1+0.5*w)], [0.5*w, -(r1-0.5*w)]]))
+    li = cat(([[0.5*w, r1+0.5*w], [0.5*w, r1-0.5*w]], li))
     l = cat((lo, li[::-1]))
     metal.AddPolygon(
         priority = priority,
-        points = complex_to_xy(l),
+        points = l,
         elevation = z[1:],
         normal_direction = 'z',
         pcb_layer = 'F.Cu',
@@ -124,12 +114,12 @@ def ratrace(
         w = ms_width
         l = cat((
             arc(0, y1, r+0.5*w, -0.5*pi, 0.5*pi),
-            [x + 1j*(y1+r+0.5*w), x + 1j*(y1+r-0.5*w)],
+            [[x, y1+r+0.5*w], [x, y1+r-0.5*w]],
             arc(0, y1, r-0.5*w, 0.5*pi, -0.5*pi),
         ))
         metal.AddPolygon(
             priority = priority,
-            points = complex_to_xy(l),
+            points = l,
             elevation = z[1:],
             normal_direction = 'z',
             pcb_layer = 'F.Cu',
