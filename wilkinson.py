@@ -73,15 +73,15 @@ def generate(em,
     lp3 = lp2.duplicate("line_p3").mirror('y')
     lp3.padname = '3'
 
-    # coupled line ports
-    start = [x0 - port_length, 0.2*mm, z[1]]
-    stop  = [x0,  0.2*mm+ms_width, z[2]]
-    openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('y')
-
     # main line port
     start = [-1.0*endspace, -0.5*ms_width, z[1]]
     stop  = [-1.0*endspace + port_length,  0.5*ms_width, z[2]]
     openems.Port(em, start, stop, direction='x', z=50)
+
+    # coupled line ports
+    start = [x0 - port_length, 0.2*mm, z[1]]
+    stop  = [x0,  0.2*mm+ms_width, z[2]]
+    openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('y')
 
     for i in range(n):
         if not rv[i]:
