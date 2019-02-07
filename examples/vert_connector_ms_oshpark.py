@@ -2,6 +2,7 @@
 import sys
 mm = 0.001
 import openems
+import openems.geometries
 import numpy as np
 
 em = openems.OpenEMS('vert_connector_ms_oshpark', EndCriteria = 1e-5, fmin = 0e6, fmax = 50e9,
@@ -34,30 +35,16 @@ em.mesh.AddLine('z', sub1t+airspace)
 zmin = bb - 1*mm
 em.mesh.AddLine('z', zmin)
 
-def planar_fullbox(sub, z, priority=1):
-    start = np.array([-0.5*box_length, 0.5*box_width, z[0]])
-    stop  = np.array([0.5*box_length, -0.5*box_width, z[1]])
-    sub.AddBox(start, stop, priority=priority)
-
-def planar_fullbox_center_hole(subs, z, r, priority=1):
-    x = 0.5*box_length
-    y = 0.5*box_width
-    outside = np.array([[0,y], [x,y], [x,-y], [0,-y]])
-    inside = openems.arc(0,0, r, -np.pi*0.5, np.pi*0.5)
-    openems.Polygon(subs,
-                    priority=priority,
-                    pcb_layer=None,
-                    points = np.concatenate((inside, outside)),
-                    elevation = z,
-                    normal_direction = 'z').duplicate().mirror('x')
+planar = openems.geometries.planar_full_box(x=[-0.5*box_length, 0.5*box_length],
+                                            y=[-0.5*box_width, 0.5*box_width])
 
 clearance_r = via_pad*0.5 + via_clearance
-planar_fullbox(sub1, [0, sub1t], priority=1) # sub1 top
-planar_fullbox_center_hole(pcopper, [0, ifoil], clearance_r, priority=2) # inner 1 foil
-planar_fullbox(sub2, [0, -sub2t], priority=1) # sub2
-planar_fullbox(sub1, [-sub2t, -(sub2t+sub1t)], priority=1) # sub1 bottom
-planar_fullbox_center_hole(pcopper, [-sub2t, -(sub2t+ifoil)], clearance_r, priority=2) # inner2 foil
-planar_fullbox_center_hole(pcopper, [bb, bb+ofoil], 0.75*mm, priority=1) # bottom foil
+planar.add(sub1, [0, sub1t], priority=1) # sub1 top
+planar.add_center_hole(pcopper, [0, ifoil], clearance_r, priority=2) # inner 1 foil
+planar.add(sub2, [0, -sub2t], priority=1) # sub2
+planar.add(sub1, [-sub2t, -(sub2t+sub1t)], priority=1) # sub1 bottom
+planar.add_center_hole(pcopper, [-sub2t, -(sub2t+ifoil)], clearance_r, priority=2) # inner2 foil
+planar.add_center_hole(pcopper, [bb, bb+ofoil], 0.75*mm, priority=1) # bottom foil
 
 # ms line
 start = np.array([-0.5*box_length+port_length, 0.5*ms_width, sub1t])
@@ -90,7 +77,7 @@ openems.Via(copper, priority=9, x=0, y=0,
             padname='1')
 
 # coax shield
-planar_fullbox_center_hole(copper, [bb, zmin], r=1.5*mm/2.0, priority=1)
+planar.add_center_hole(copper, [bb, zmin], r=1.5*mm/2.0, priority=1)
 
 pin_diameter = 0.695*mm
 coax_port_length = 0.2*mm

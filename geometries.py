@@ -46,3 +46,26 @@ def smp_connector(em, x, y, z, zmax, coax_port_length = 0.2e-3, pin_diameter=0.8
         stop  = [x - 0.5*coax_port_length, y - 0.5*coax_port_length, zmax]
         openems.Port(em, start, stop, direction='z', z=50)
         em.mesh.AddLine('z', start[2])
+
+class planar_full_box:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    def add(self, sub, z, priority=1):
+        start = np.array([self.x[0], self.y[0], z[0]])
+        stop  = np.array([self.x[1], self.y[1], z[1]])
+        sub.AddBox(start, stop, priority=priority)
+
+    # add a plane with a hole in the middle
+    def add_center_hole(self, sub, z, r, priority=1, pcb_layer = None):
+        outside = np.array([[0,self.y[1]],
+                            [self.x[1],self.y[1]],
+                            [self.x[1],self.y[0]],
+                            [0,self.y[0]]])
+        inside = openems.arc(0,0, r, -np.pi*0.5, np.pi*0.5)
+        openems.Polygon(sub,
+                        priority=priority,
+                        pcb_layer=pcb_layer,
+                        points = np.concatenate((inside, outside)),
+                        elevation = z,
+                        normal_direction = 'z').duplicate().mirror('x')
