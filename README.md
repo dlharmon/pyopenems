@@ -9,7 +9,7 @@ This is mostly an internal tool at Harmon Instruments and is likely to have the 
 
 Install on Debian Buster:
 
-```python
+```bash
  sudo apt build-dep openems
  git clone https://github.com/thliebig/openEMS-Project.git
  cd openEMS-Project
