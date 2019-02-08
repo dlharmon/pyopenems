@@ -9,7 +9,8 @@ class Polygon(openems.Object):
                  priority=1,
                  normal_direction = 'z',
                  pcb_layer = 'F.Cu',
-                 pcb_width = 0.0):
+                 **kwargs
+    ):
         """
         Add a polygon, generally assumed to be in xy plane, but can be changed to yz or xz
         name: any unique name
@@ -24,11 +25,11 @@ class Polygon(openems.Object):
         self.material = material
         self.elevation = elevation
         self.pcb_layer = pcb_layer
-        self.pcb_width = pcb_width
         self.normal_direction = normal_direction
         self.em = material.em
         name = self.em.get_name(None)
         self.em.objects[name] = self
+        self.kwargs = kwargs
 
     def mirror(self, axes):
         """ only correct for xy plane """
@@ -51,7 +52,13 @@ class Polygon(openems.Object):
             return
         if self.pcb_layer == None:
             return
-        g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width = self.pcb_width)
+        if 'is_custom_pad' in self.kwargs.keys():
+            name = self.kwargs["pad_name"]
+            x = self.kwargs["x"]*1000.0
+            y = self.kwargs["y"]*1000.0
+            g.add_custom_pad(name, x, y, [1000.0*self.points], layer=self.pcb_layer)
+        else:
+            g.add_polygon(points = 1000.0 * self.points, layer = self.pcb_layer, width=0)
 
     def generate_octave(self):
         height = self.elevation[1] - self.elevation[0]
@@ -68,4 +75,4 @@ class Polygon(openems.Object):
                        priority = self.priority,
                        normal_direction = self.normal_direction,
                        pcb_layer = self.pcb_layer,
-                       pcb_width = self.pcb_width)
+        )

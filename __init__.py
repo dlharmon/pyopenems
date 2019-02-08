@@ -67,14 +67,10 @@ class Material():
         self.lossy = False
         self.em = em
         self.name = name
-    def AddBox(self, start, stop, priority, padname=None, pcb_layer='F.Cu'):
-        return Box(self, start=start, stop=stop, priority=priority,
-                   padname=padname, pcb_layer=pcb_layer)
-    def AddPolygon(self, points, elevation, priority=1,
-                   normal_direction='z',
-                   pcb_layer = 'F.Cu',
-                   pcb_width = 0.0):
-        return Polygon(self, points, elevation, priority, normal_direction, pcb_layer, pcb_width)
+    def AddBox(self, start, stop, priority, **kwargs):
+        return Box(self, start=start, stop=stop, priority=priority, **kwargs)
+    def AddPolygon(self, **kwargs):
+        return Polygon(self, **kwargs)
     def AddCylinder(self, start, stop, radius, priority):
         return Cylinder(self, priority, start, stop, radius)
 
