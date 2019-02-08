@@ -19,6 +19,10 @@ def generate(
     em.mesh.AddLine('z', z[0]) # air above, below
     em.mesh.AddLine('z', z[5])
     em.mesh.AddLine('z', 0.5*(z[2]+z[3]))
+    em.mesh.AddLine('z', 0.25*(3*z[2]+z[3]))
+    em.mesh.AddLine('z', 0.25*(z[2]+3*z[3]))
+    em.mesh.AddLine('y', -0.5*min_width)
+    em.mesh.AddLine('y', 0.5*min_width)
 
     box_length = 2.0*(np.sum(inductors) + capacitors[0] + 0.5e-3)
 
