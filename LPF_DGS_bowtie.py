@@ -101,7 +101,7 @@ def generate(
             pcb_layer = 'B.Cu',
             is_custom_pad = True,
             x=0,
-            y=yb+0.1e-3,
+            y=ym*(yb+0.1e-3),
             pad_name='3',
         )
 
