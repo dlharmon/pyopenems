@@ -43,9 +43,6 @@ def generate(
     if mask != None:
         start[2] = z[3] + 25e-6
         openems.Box(mask, 1, start, stop)
-        start[2] = z[2]
-        stop[2] = z[2] - 25e-6
-        openems.Box(mask, 1, start, stop)
 
     # top copper polygon
     points = np.zeros((6+10*len(inductors),2))
