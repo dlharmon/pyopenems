@@ -1,4 +1,4 @@
-#pyopenems
+# pyopenems
 
 A wrapper for the OpenEMS FDTD solver adding Kicad footprint generation for the simulated object.
 
