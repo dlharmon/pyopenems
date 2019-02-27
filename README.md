@@ -18,5 +18,3 @@ Install on Debian Buster:
  cd CSXCAD/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install
  cd openEMS/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install
  ```
- ### [Footgen](https://github.com/dlharmon/footgen)
-Either use setup.py or put footgen/footgen in your `$PYTHONPATH`

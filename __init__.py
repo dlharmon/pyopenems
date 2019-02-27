@@ -5,7 +5,7 @@ import scipy.io
 from scipy.constants import pi, c, epsilon_0, mu_0
 mm = 0.001
 import matplotlib.pyplot
-import footgen
+import openems.kicadfpwriter
 
 from CSXCAD  import ContinuousStructure
 from openEMS import openEMS
@@ -173,9 +173,7 @@ class Box(Object):
                   x = 500.0 * (self.start[0] + self.stop[0]), # mm
                   y = 500.0 * (self.start[1] + self.stop[1]), # mm
                   xsize = 1000.0 * abs(self.start[0] - self.stop[0]), # mm
-                  ysize = 1000.0 * abs(self.start[1] - self.stop[1]),
-                  masked = True,
-                  paste = False)
+                  ysize = 1000.0 * abs(self.start[1] - self.stop[1]))
     def generate_octave(self):
         self.material.material.AddBox(start=self.start, stop=self.stop,
                                       priority=self.priority)
@@ -426,14 +424,14 @@ class OpenEMS:
         return "pad_{}".format(self.name_count)
 
     def write_kicad(self, fpname, mirror=""):
-        f = footgen.Footgen(fpname)
-        g = f.generator
+        g = kicadfpwriter.Generator(fpname)
         g.mirror = mirror
         for object in self.objects:
-            g.options = "masked"
             g.drill = 0
             self.objects[object].generate_kicad(g)
-        f.finish()
+        fp = g.finish()
+        with open(self.name+".kicad_mod", "w") as f:
+            f.write(fp)
 
     def run_openems(self, options='view solve', z=50):
         cwd = os.getcwd()
