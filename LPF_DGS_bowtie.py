@@ -105,13 +105,11 @@ def generate(
             pad_name='3',
         )
 
-    # main line ports
-    start = [x0, -0.5*ms_width, z[3]]
-    stop  = [x1,  0.5*ms_width, z[4]]
-    em.AddPort(start, stop, direction='x', z=50).duplicate().mirror('x')
-
-    # pads
-    start[0] = x2
-    l1 = openems.Box(pec, 9, start, stop, padname = '1')
-    l2 = l1.duplicate().mirror('x')
-    l2.padname = '2'
+    for (xm,padname) in [(-1,2),(1,1)]:
+        # main line ports
+        start = [x0*xm, -0.5*ms_width, z[3]]
+        stop  = [x1*xm,  0.5*ms_width, z[4]]
+        em.AddPort(start, stop, direction='x', z=50)
+        # pads
+        start[0] = x2*xm
+        l1 = openems.Box(pec, 9, start, stop, padname=padname)

@@ -67,11 +67,10 @@ def generate(em,
     x1 = x0 - port_length
 
     # output lines
-    start = np.array([x1, 0.2*mm, z[1]])
-    stop  = np.array([(n*4 - 1)*r-0.1*mm, 0.2*mm+ms_width, z[2]])
-    lp2 = metal.AddBox(start, stop, priority=9, padname = '2')
-    lp3 = lp2.duplicate("line_p3").mirror('y')
-    lp3.padname = '3'
+    for (ym,padname) in [(1,2),(-1,3)]:
+        start = np.array([x1, ym*0.2*mm, z[1]])
+        stop  = np.array([(n*4 - 1)*r-0.1*mm, ym*(0.2*mm+ms_width), z[2]])
+        lp2 = metal.AddBox(start, stop, priority=9, padname = padname)
 
     # main line port
     start = [-1.0*endspace, -0.5*ms_width, z[1]]
@@ -79,9 +78,10 @@ def generate(em,
     openems.Port(em, start, stop, direction='x', z=50)
 
     # coupled line ports
-    start = [x0 - port_length, 0.2*mm, z[1]]
-    stop  = [x0,  0.2*mm+ms_width, z[2]]
-    openems.Port(em, start, stop, direction='x', z=50).duplicate().mirror('y')
+    for ym in [-1,1]:
+        start = [x0 - port_length, ym*0.2*mm, z[1]]
+        stop  = [x0,  ym*(0.2*mm+ms_width), z[2]]
+        openems.Port(em, start, stop, direction='x', z=50)
 
     for i in range(n):
         if not rv[i]:
