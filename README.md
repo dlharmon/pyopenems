@@ -1,8 +1,10 @@
-#pyopenems
+# pyopenems
 
 A wrapper for the OpenEMS FDTD solver adding Kicad footprint generation for the simulated object.
 
 This is mostly an internal tool at Harmon Instruments and is likely to have the interfaces change at any time.
+
+## [Examples](examples)
 
 ## Dependencies
 ### [OpenEMS](http://openems.de) > 0.35  with Python support.
