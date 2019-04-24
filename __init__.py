@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os, tempfile
 import numpy as np
-import scipy.io
 from scipy.constants import pi, c, epsilon_0, mu_0
 mm = 0.001
 import matplotlib.pyplot
@@ -34,14 +33,6 @@ def mirror(point, axes):
     if 'z' in axes:
         retval *= np.array([1,1,-1])
     return retval
-
-def openems_direction_vector(direction):
-    if 'x' in direction:
-        return [1,0,0]
-    if 'y' in direction:
-        return [0,1,0]
-    if 'z' in direction:
-        return [0,0,1]
 
 def db_angle(s):
     logmag = float(20.0*np.log10(np.abs(s)))
@@ -122,22 +113,8 @@ class LossyMetal(Material):
         self.material = em.AddConductingSheet(name, self.conductivity, self.thickness)
 
 class Object():
-    def mirror(self, axes):
-        self.start = mirror(self.start, axes)
-        self.stop = mirror(self.stop, axes)
-        return self
-    def rotate_ccw_90(self):
-        """ rotate 90 degrees CCW in XY plane """
-        self.start = np.array([-1.0*self.start[1], self.start[0], self.start[2]])
-        self.stop = np.array([-1.0*self.stop[1], self.stop[0], self.stop[2]])
-    def offset(self, val):
-        self.start += val
-        self.stop += val
     def generate_kicad(self, g):
         pass
-    def duplicate_n(self, name=None, step=[0,0,0], count=1):
-        for i in range(count-1):
-            self.duplicate("{}_{}".format(self.em.get_name(name), i+2)).offset(np.array(step)*(i+1))
 
 from .polygon import Polygon
 
@@ -152,9 +129,6 @@ class Box(Object):
         self.padname = padname
         self.layer = pcb_layer
         self.em.objects[self.name] = self
-    def duplicate(self, name=None):
-        return Box(self.material, self.priority,
-                   self.start, self.stop, self.padname, self.layer)
     def generate_kicad(self, g):
         if self.material.__class__.__name__ == 'Dielectric':
             return
@@ -195,8 +169,6 @@ class Cylinder(Object):
         self.padname = '1'
         self.priority = priority
         self.em.objects[self.name] = self
-    def duplicate(self, name=None):
-        return Cylinder(self.material, self.priority, self.start, self.stop, self.radius)
     def generate_octave(self):
         self.material.material.AddCylinder(priority=self.priority,
                                            start=self.start,
@@ -229,25 +201,13 @@ class Via(Object):
         self.name = self.em.get_name(None)
         self.padname = padname
         self.em.objects[self.name] = self
-    def mirror(self, axes):
-        if 'x' in axes:
-            self.x *= -1.0
-        if 'y' in axes:
-            self.y *= -1.0
-        return self
     def generate_kicad(self, g):
         g.add_pad(x = self.x * 1000.0,
                   y = self.y * 1000.0,
                   diameter = self.padradius * 2000.0, # footgen uses mm
                   drill = self.drillradius * 2000.0,
-                  mask_clearance = -500.0*(self.padradius-self.drillradius) + 0.03,
                   shape = "circle",
                   name = self.padname)
-    def offset(self, val):
-        self.x += val[0]
-        self.y += val[1]
-    def duplicate(self, name=None):
-        return Via(self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
         start = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][0]]
         stop = [self.x + self.em.via_offset_x, self.y + self.em.via_offset_y, self.z[0][1]]
@@ -280,12 +240,6 @@ class RoundPad(Object):
         self.name = self.em.get_name(None)
         self.padname = padname
         em.objects[self.name] = self
-    def mirror(self, axes):
-        if 'x' in axes:
-            self.x *= -1.0
-        if 'y' in axes:
-            self.y *= -1.0
-        return self
     def generate_kicad(self, g):
         g.add_pad(x = self.x * 1000.0,
                   y = self.y * 1000.0,
@@ -293,11 +247,6 @@ class RoundPad(Object):
                   mask_clearance = 0.0,
                   shape = "circle",
                   name = self.padname)
-    def offset(self, val):
-        self.x += val[0]
-        self.y += val[1]
-    def duplicate(self, name=None):
-        return RoundPad(self.em, name, self.material, self.priority, self.x, self.y, self.z, self.drillradius, self.padradius, self.padname)
     def generate_octave(self):
         self.material.material.AddCylinder(start = [self.x, self.y, self.z[0]],
                                            stop = [self.x, self.y, self.z[1]],
@@ -317,8 +266,6 @@ class Port(Object):
         name = "p" + str(self.portnumber)
         em.objects[name] = self
         em.ports.append(self)
-    def duplicate(self):
-        return Port(self.em, self.start, self.stop, self.direction, self.z, padname = self.padname, layer = self.layer)
     def generate_octave(self):
         #AddMSLPort
         self.port = self.em.FDTD.AddLumpedPort(
@@ -338,7 +285,7 @@ class Port(Object):
         g.add_pad(x,y,self.padname, layer = self.layer)
 
 class OpenEMS:
-    def __init__(self, name, fmin=1e6, fmax=50e9,
+    def __init__(self, name, fmin=0, fmax=50e9,
                  NrTS=1e6,
                  EndCriteria=1e-6,
                  #BC = {xmin xmax ymin ymax zmin zmax};
@@ -447,9 +394,10 @@ class OpenEMS:
         if not isinstance(self.resolution, collections.Sequence):
             self.resolution = np.ones(3) * self.resolution
 
-        self.mesh.SmoothMeshLines('x', self.resolution[0])
-        self.mesh.SmoothMeshLines('y', self.resolution[1])
-        self.mesh.SmoothMeshLines('z', self.resolution[2])
+        ratio = 1.5
+        self.mesh.SmoothMeshLines('x', self.resolution[0], ratio)
+        self.mesh.SmoothMeshLines('y', self.resolution[1], ratio)
+        self.mesh.SmoothMeshLines('z', self.resolution[2], ratio)
 
         if 'view' in options:
                 CSX_file = simpath + '/csx.xml'
