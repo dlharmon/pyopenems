@@ -15,8 +15,10 @@ Install on Debian Buster:
  sudo apt build-dep openems
  git clone https://github.com/thliebig/openEMS-Project.git
  cd openEMS-Project
+ git submodule init
+ git submodule pull
  export OPENEMS=$HOME/software/openems
  ./update_openEMS.sh $OPENEMS
- cd CSXCAD/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install
- cd openEMS/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install
+ cd CSXCAD/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install; cd ../..
+ cd openEMS/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install; cd ../..
  ```
