@@ -381,16 +381,17 @@ class OpenEMS:
         if size == '0402':
             start = np.array([-0.25*mm, -0.5*mm, 0])
             stop  = np.array([0.25*mm, -0.5*mm/2, 0.35*mm])
-        cap1 = metal.AddBox(start, stop, priority=priority, padname = None)
-        cap2 = cap1.duplicate(name+"+_end_cap2")
-        cap2.mirror('y')
+        for m in [np.array([1,-1,1]), np.array([1,1,1])]:
+            metal.AddBox(origin + start*m,
+                         origin + stop*m,
+                         priority=priority, padname = None)
         # resistor body
         start = np.array([-0.15, -0.27, 0.02])*mm
         stop  = np.array([0.15, 0.27, 0.23])*mm
         if size == '0402':
             start = np.array([-0.25, -0.47, 0.02])*mm
             stop  = np.array([0.25, 0.47, 0.33])*mm
-        body = dielectric.AddBox(start, stop, priority=priority+1, padname = None)
+        body = dielectric.AddBox(origin + start, origin + stop, priority=priority+1, padname = None)
         # resistor element
         if element_down:
             zoff = 0.0
@@ -401,6 +402,8 @@ class OpenEMS:
         if size == '0402':
             start = np.array([-0.2, -0.25, 0+zoff])*mm
             stop  = np.array([0.2, 0.25, 0.02+zoff])*mm
+        start += origin
+        stop += origin
         element = element.AddBox(start, stop, priority=priority+1, padname = None)
         # reposition
         if invert:
@@ -413,10 +416,7 @@ class OpenEMS:
             cap2.rotate_ccw_90()
             body.rotate_ccw_90()
             element.rotate_ccw_90()
-        cap1.offset(origin)
-        cap2.offset(origin)
-        body.offset(origin)
-        element.offset(origin)
+
     def get_name(self, name):
         if name:
             return name
