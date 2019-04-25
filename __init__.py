@@ -47,6 +47,7 @@ def save_s1p(f, s11, filename, z):
         f.write(fdata)
 
 def save_s2p_symmetric(f, s11, s21, filename, z):
+    print("warning: save_s2p_symmetric is only valid for a symmetric 2 port")
     fdata = "# GHz S DB R {}\n".format(z)
     for i in range(len(f)):
         fdata += "{0:>12f} {1} {2} {2} {1}\n".format(f[i]/1e9, db_angle(s11[i]), db_angle(s21[i]))
