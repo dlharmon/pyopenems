@@ -279,11 +279,12 @@ class Port(Object):
     def generate_kicad(self, g):
         if self.padname == None:
             return
-        g.width = 1000.0 * abs(self.start[0] - self.stop[0]) # mm
-        g.height = 1000.0 * abs(self.start[1] - self.stop[1])
-        x = 500.0 * (self.start[0] + self.stop[0]) # mm
-        y = 500.0 * (self.start[1] + self.stop[1]) # mm
-        g.add_pad(x,y,self.padname, layer = self.layer)
+        g.add_pad(self.padname,
+                  layer = self.layer,
+                  x = 500.0 * (self.start[0] + self.stop[0]), # mm
+                  y = 500.0 * (self.start[1] + self.stop[1]), # mm
+                  xsize = 1000.0 * abs(self.start[0] - self.stop[0]), # mm
+                  ysize = 1000.0 * abs(self.start[1] - self.stop[1]))
 
 class OpenEMS:
     def __init__(self, name, fmin=0, fmax=50e9,
