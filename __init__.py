@@ -152,12 +152,10 @@ class Box(Object):
     def generate_octave(self):
         self.material.material.AddBox(start=self.start, stop=self.stop,
                                       priority=self.priority)
-        self.em.mesh.AddLine('x', self.start[0])
-        self.em.mesh.AddLine('y', self.start[1])
-        self.em.mesh.AddLine('z', self.start[2])
-        self.em.mesh.AddLine('x', self.stop[0])
-        self.em.mesh.AddLine('y', self.stop[1])
-        self.em.mesh.AddLine('z', self.stop[2])
+        for vertex in [self.start, self.stop]:
+            self.em.mesh.AddLine('x', vertex[0])
+            self.em.mesh.AddLine('y', vertex[1])
+            self.em.mesh.AddLine('z', vertex[2])
 
 class Cylinder(Object):
     def __init__(self, material, priority, start, stop, radius):
@@ -285,6 +283,10 @@ class Port(Object):
                   y = 500.0 * (self.start[1] + self.stop[1]), # mm
                   xsize = 1000.0 * abs(self.start[0] - self.stop[0]), # mm
                   ysize = 1000.0 * abs(self.start[1] - self.stop[1]))
+        for vertex in [self.start, self.stop]:
+            self.em.mesh.AddLine('x', vertex[0])
+            self.em.mesh.AddLine('y', vertex[1])
+            self.em.mesh.AddLine('z', vertex[2])
 
 class OpenEMS:
     def __init__(self, name, fmin=0, fmax=50e9,
