@@ -14,7 +14,8 @@ def generate(
         z, # bottom of [air below, bottom metal, substrate, top metal, air above, lid]
         port_length,
         ms_width,
-        box_width):
+        box_width,
+        half_fan_angle=0.25*np.pi):
 
     em.mesh.AddLine('z', z[0]) # air above, below
     em.mesh.AddLine('z', z[5])
@@ -49,19 +50,27 @@ def generate(
     points[0] = [x1, 0.5*ms_width]
     x = -np.sum(inductors)
     points[1] = [x - 0.5*ms_width, 0.5*ms_width]
-    points[2:10] = arc(x, 0, capacitors[0], 3*np.pi/4.0, np.pi/4.0, npoints = 8)
+    points[2:10] = arc(x, 0, capacitors[0],
+                       0.5*np.pi+half_fan_angle,
+                       0.5*np.pi-half_fan_angle,
+                       npoints = 8)
     points[10] = [x + 0.5*min_width, 0.5*min_width]
     i = 11
     x += inductors[0]
     for j in range(1, len(inductors)):
         points[i+0] = [x-0.5*min_width, 0.5*min_width]
-        points[i+1:i+9] = arc(x, 0, capacitors[j], 3*np.pi/4.0, np.pi/4.0, npoints = 8)
+        points[i+1:i+9] = arc(x, 0, capacitors[j],
+                              0.5*np.pi+half_fan_angle,
+                              0.5*np.pi-half_fan_angle,
+                              npoints = 8)
         points[i+9] = [x+0.5*min_width, 0.5*min_width]
         i += 10
         x += inductors[j]
     # center cap
     points[i+0] = [-0.5*min_width, 0.5*min_width]
-    points[i+1:i+5] = arc(0, 0, capacitors[-1], 3*np.pi/4.0, np.pi/2.0 + 0.001, npoints = 4)
+    points[i+1:i+5] = arc(0, 0, capacitors[-1],
+                          0.5*np.pi+half_fan_angle,
+                          0.5*np.pi + 0.001, npoints = 4)
     print(points)
     points = np.concatenate((points, points[::-1]*[-1,1]))
     points = np.concatenate((points, points[::-1]*[1,-1]))
