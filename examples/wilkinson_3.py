@@ -3,7 +3,7 @@ import sys
 import openems
 from openems import wilkinson
 
-em = openems.OpenEMS('wilkinson_1', EndCriteria = 1e-4, fmin = 0e6, fmax = 6e9, fsteps=400)
+em = openems.OpenEMS('wilkinson_3', EndCriteria = 1e-4, fmin = 0e6, fmax = 6e9, fsteps=400)
 
 fc = 1e9
 sub = openems.Dielectric(em, 'fr408', eps_r=3.3, tand=0.012, fc=fc)
@@ -18,10 +18,10 @@ em.resolution = 50e-6
 
 wilkinson.generate(
     em,
-    y1 = 5e-3*1.43,
+    y1 = 5e-3,
     y2 = 500e-6,
     r = 200e-6,
-    rv = [None, None, None, 100],
+    rv = [None, 100],
     w = [150e-6]*4,
     substrate = sub,
     z = z,
