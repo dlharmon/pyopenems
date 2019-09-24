@@ -11,12 +11,17 @@ This is mostly an internal tool at Harmon Instruments and is likely to have the 
 
 Install on Debian Buster:
 
+There is currently no installer, you need to place the repo somewhere in your python path.
+
 ```bash
  sudo apt build-dep openems
+ sudo apt install cython3 install build-essential cython3 python3-numpy python3-matplotlib
+ sudo apt install python3-scipy python3-h5py
+
  git clone https://github.com/thliebig/openEMS-Project.git
  cd openEMS-Project
  git submodule init
- git submodule pull
+ git submodule update
  export OPENEMS=$HOME/software/openems
  ./update_openEMS.sh $OPENEMS
  cd CSXCAD/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install; cd ../..
