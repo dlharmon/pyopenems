@@ -27,3 +27,13 @@ There is currently no installer, you need to place the repo somewhere in your py
  cd CSXCAD/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install; cd ../..
  cd openEMS/python; python3 setup.py build_ext -I$OPENEMS/include -L$OPENEMS/lib -R$OPENEMS/lib; sudo python3 setup.py install; cd ../..
  ```
+
+Install on Ubuntu 18.04 (user submitted):
+
+instead of `sudo apt build-dep openems`
+
+```bash
+sudo apt install libtinyxml-dev libhdf5-serial-dev libcgal-dev vtk6 libvtk6-qt-dev
+sudo python3 -m pip install --upgrade pip
+sudo python3 -m pip install vtk scipy matplotlib h5py
+```
