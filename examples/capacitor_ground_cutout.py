@@ -60,15 +60,16 @@ elif sys.argv[1] == '0402':
 else:
     exit()
 
-# line
-start = np.array([pad_x1, 0.5*ms_width, substrate_top])
-stop  = np.array([0.5*box_length-port_length, -0.5*ms_width, foil_top])
-copper.AddBox(start, stop, priority=9).duplicate().mirror('x')
+for xm in [-1,1]:
+    # line
+    start = np.array([xm*pad_x1, 0.5*ms_width, substrate_top])
+    stop  = np.array([xm*0.5*box_length-port_length, -0.5*ms_width, foil_top])
+    copper.AddBox(start, stop, priority=9)
 
-# 0201 pads
-start = np.array([pad_x1,  pad_y, substrate_top])
-stop  = np.array([pad_x2, -pad_y, foil_top])
-copper.AddBox(start, stop, priority=9).duplicate().mirror('x')
+    # 0201 pads
+    start = np.array([xm*pad_x1,  pad_y, substrate_top])
+    stop  = np.array([xm*pad_x2, -pad_y, foil_top])
+    copper.AddBox(start, stop, priority=9)
 
 # 0201 body
 start = np.array([-body_x, -body_y, foil_top + body_z])
