@@ -15,7 +15,7 @@ There is currently no installer, you need to place the repo somewhere in your py
 
 ```bash
  sudo apt build-dep openems
- sudo apt install cython3 install build-essential cython3 python3-numpy python3-matplotlib
+ sudo apt install cython3 build-essential cython3 python3-numpy python3-matplotlib
  sudo apt install python3-scipy python3-h5py
 
  git clone https://github.com/thliebig/openEMS-Project.git
