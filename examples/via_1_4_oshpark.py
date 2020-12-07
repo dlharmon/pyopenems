@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 import sys
-from scipy.constants import pi, c, epsilon_0, mu_0, mil
+from scipy.constants import pi, c, mil
 mm = 0.001
-import openems
-import openems.geometries
+from openems import OpenEMS, Box, Cylinder, Via, Port, Metal, Dielectric, geometries
 import numpy as np
 
-em = openems.OpenEMS('via_1_4_oshpark', EndCriteria = 1e-4, fmin = 0e6, fmax = 40e9,
+em = OpenEMS('via_1_4_oshpark', EndCriteria = 1e-4, fmin = 0e6, fmax = 40e9,
                      boundaries = ['PEC', 'PEC', 'PEC', 'PEC', 'PEC', 'PEC'])
 em.fsteps = 1601
-copper = openems.Metal(em, 'copper')
-pcopper = openems.Metal(em, 'pcopper')
-sub1 = openems.Dielectric(em, 'substrate', eps_r=3.2)
-sub2 = openems.Dielectric(em, 'substrate', eps_r=4)
-air = openems.Dielectric(em, 'substrate', eps_r=1)
+copper = Metal(em, 'copper')
+pcopper = Metal(em, 'pcopper')
+sub1 = Dielectric(em, 'substrate', eps_r=3.2)
+sub2 = Dielectric(em, 'substrate', eps_r=4)
+air = Dielectric(em, 'substrate', eps_r=1)
 
 sub1t = 0.166*mm
 sub2t = 47*mil
@@ -31,7 +30,7 @@ bb = -1*(ofoil+sub2t+sub1t)
 
 em.resolution = 50e-6
 
-planar = openems.geometries.planar_full_box(x=[-0.5*box_length, 0.5*box_length],
+planar = geometries.planar_full_box(x=[-0.5*box_length, 0.5*box_length],
                                             y=[-0.5*box_width, 0.5*box_width])
 
 em.mesh.AddLine('z', sub1t+airspace)
@@ -48,22 +47,22 @@ planar.add(sub1, [-sub2t, -(sub2t+sub1t)]) # sub1 bot
 # line
 start = np.array([0, 0.5*ms_width, bb])
 stop  = np.array([0.5*box_length-port_length, -0.5*ms_width, bb+ofoil])
-copper.AddBox(start, stop, priority=9)
+Box(copper, 9, start, stop)
 
 # line
 start = np.array([-0.5*box_length+port_length, 0.5*ms_width, sub1t])
 stop  = np.array([0, -0.5*ms_width, bt])
-copper.AddBox(start, stop, priority=9)
+Box(copper, 9, start, stop)
 
 # ports
 start = [-0.5*box_length, ms_width/2.0, sub1t]
 stop  = [-0.5*box_length + port_length, ms_width/-2.0, bt]
-openems.Port(em, start, stop, direction='x', z=50)
+Port(em, start, stop, direction='x', z=50)
 start = [0.5*box_length, ms_width/2.0, bb]
 stop  = [0.5*box_length - port_length, ms_width/-2.0, bb+ofoil]
-openems.Port(em, start, stop, direction='x', z=50)
+Port(em, start, stop, direction='x', z=50)
 
-openems.Via(copper, priority=9, x=0, y=0,
+Via(copper, priority=9, x=0, y=0,
             z=[[bb, bt], [bt, bt-ofoil], [0, ifoil], [-sub2t, -sub2t-ifoil], [bb+ofoil, bb]],
             drillradius = 0.5*0.25e-3,
             wall_thickness = 25e-6,
@@ -72,9 +71,9 @@ openems.Via(copper, priority=9, x=0, y=0,
 
 for x in range(-2,3):
     for y in [-0.75*mm, 0.75*mm]:
-        copper.AddCylinder([x*mm, y, bb], [x*mm, y, bt], 0.3*mm*0.5, priority=9)
-        copper.AddCylinder([x*mm, y, bt], [x*mm, y, bt-ofoil], 0.46*mm*0.5, priority=9)
-        copper.AddCylinder([x*mm, y, bb], [x*mm, y, bb+ofoil], 0.46*mm*0.5, priority=9)
+        Cylinder(copper, 9, [x*mm, y, bb], [x*mm, y, bt], 0.3*mm*0.5)
+        Cylinder(copper, 9, [x*mm, y, bt], [x*mm, y, bt-ofoil], 0.46*mm*0.5)
+        Cylinder(copper, 9, [x*mm, y, bb], [x*mm, y, bb+ofoil], 0.46*mm*0.5)
 
 command = 'view solve'
 if len(sys.argv) > 1:

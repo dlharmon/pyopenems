@@ -9,6 +9,7 @@ class Polygon(openems.Object):
                  priority=1,
                  normal_direction = 'z',
                  pcb_layer = 'F.Cu',
+                 mirror = '',
                  **kwargs
     ):
         """
@@ -21,6 +22,12 @@ class Polygon(openems.Object):
         normal_direction: optional, default = z, direction normal to the polygon - 'x', 'y' or 'z'
         """
         self.points = np.array(points)
+        if mirror != '':
+            assert(normal_direction == 'z')
+        if 'x' in mirror:
+            self.points[:,0] *= -1.0
+        if 'y' in mirror:
+            self.points[:,1] *= -1.0
         self.priority = priority
         self.material = material
         self.elevation = elevation
@@ -30,22 +37,6 @@ class Polygon(openems.Object):
         name = self.em.get_name(None)
         self.em.objects[name] = self
         self.kwargs = kwargs
-
-    def mirror(self, axes):
-        """ only correct for xy plane """
-        if 'x' in axes:
-            self.points[:,0] *= -1.0
-        if 'y' in axes:
-            self.points[:,1] *= -1.0
-        return self
-
-    def rotate_ccw_90(self):
-        print("rotate_ccw_90() not supported for Polygon, ignoring")
-
-    def offset(self, val):
-        """ only correct for xy plane, 2d """
-        self.points = np.array(self.points) + val[:2]
-        return self
 
     def generate_kicad(self, g):
         if self.material.__class__.__name__ == 'Dielectric':
@@ -67,12 +58,3 @@ class Polygon(openems.Object):
                                           self.elevation[0],
                                           height,
                                           priority=self.priority)
-
-    def duplicate(self):
-        return Polygon(material = self.material,
-                       points = self.points,
-                       elevation = self.elevation,
-                       priority = self.priority,
-                       normal_direction = self.normal_direction,
-                       pcb_layer = self.pcb_layer,
-        )

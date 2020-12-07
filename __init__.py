@@ -111,7 +111,7 @@ class LossyMetal(Material):
         self.name = name
         self.type = 'metal'
         self.lossy = True
-        self.material = em.AddConductingSheet(name, self.conductivity, self.thickness)
+        self.material = em.CSX.AddConductingSheet(name, conductivity=self.conductivity, thickness=self.thickness)
 
 class Object():
     def generate_kicad(self, g):
@@ -120,11 +120,12 @@ class Object():
 from .polygon import Polygon
 
 class Box(Object):
-    def __init__(self, material, priority, start, stop, padname = '1', pcb_layer='F.Cu'):
+    def __init__(self, material, priority, start, stop, padname = '1', pcb_layer='F.Cu', mirror=''):
+        mirror = [-1 if 'x' in mirror else 1, -1 if 'y' in mirror else 1, -1 if 'z' in mirror else 1]
         self.priority = priority
         self.material = material
-        self.start = np.array(start)
-        self.stop = np.array(stop)
+        self.start = np.array(start) * mirror
+        self.stop = np.array(stop) * mirror
         self.em = material.em
         self.name = self.em.get_name(None)
         self.padname = padname
@@ -253,10 +254,11 @@ class RoundPad(Object):
                                            radius = self.padradius)
 
 class Port(Object):
-    def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu'):
+    def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu', mirror = ''):
         self.em = em
-        self.start = np.array(start)
-        self.stop = np.array(stop)
+        mirror = [-1 if 'x' in mirror else 1, -1 if 'y' in mirror else 1, 1]
+        self.start = np.array(start)*mirror
+        self.stop = np.array(stop)*mirror
         self.direction = direction
         self.z = z
         self.padname = padname
@@ -266,7 +268,6 @@ class Port(Object):
         em.objects[name] = self
         em.ports.append(self)
     def generate_octave(self):
-        #AddMSLPort
         self.port = self.em.FDTD.AddLumpedPort(
             self.portnumber,
             R=self.z,
@@ -283,10 +284,6 @@ class Port(Object):
                   y = 500.0 * (self.start[1] + self.stop[1]), # mm
                   xsize = 1000.0 * abs(self.start[0] - self.stop[0]), # mm
                   ysize = 1000.0 * abs(self.start[1] - self.stop[1]))
-        for vertex in [self.start, self.stop]:
-            self.em.mesh.AddLine('x', vertex[0])
-            self.em.mesh.AddLine('y', vertex[1])
-            self.em.mesh.AddLine('z', vertex[2])
 
 class OpenEMS:
     def __init__(self, name, fmin=0, fmax=50e9,
@@ -384,7 +381,7 @@ class OpenEMS:
         with open(self.name+".kicad_mod", "w") as f:
             f.write(fp)
 
-    def run_openems(self, options='view solve', z=50):
+    def run_openems(self, options='view solve', z=50, initialize=True):
         cwd = os.getcwd()
         basename = cwd + '/' + self.name
         simpath = r'/tmp/openems_data'
@@ -399,9 +396,9 @@ class OpenEMS:
             self.resolution = np.ones(3) * self.resolution
 
         ratio = 1.5
-        self.mesh.SmoothMeshLines('x', self.resolution[0], ratio)
-        self.mesh.SmoothMeshLines('y', self.resolution[1], ratio)
-        self.mesh.SmoothMeshLines('z', self.resolution[2], ratio)
+        for i in range(3):
+            if self.resolution[i] is not None:
+                self.mesh.SmoothMeshLines('xyz'[i], self.resolution[i], ratio)
 
         if 'view' in options:
                 CSX_file = simpath + '/csx.xml'
@@ -452,5 +449,3 @@ class OpenEMS:
             matplotlib.pyplot.savefig(basename+".svg")
             matplotlib.pyplot.savefig(basename+".pdf")
             matplotlib.pyplot.show()
-            print(len(self.frequencies))
-            print(s)
