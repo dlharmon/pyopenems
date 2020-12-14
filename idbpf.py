@@ -1,10 +1,10 @@
 mm = 0.001
-import openems
+from openems import OpenEMS, Box, Cylinder, Via, Port, Metal, Dielectric, geometries, mirror
 import numpy as np
 
 def idbpf(
     em, # openems instance
-    sub, # substrate, define with openems.Dielectric()
+    sub, # substrate, define with Dielectric()
     z = [], # z position, z[0] = sub bottom, z[1] = sub top, z[2] = foil top
     lidz = 0, # upper substrate thickness
     rl = [], # length of resonator fingers
@@ -17,11 +17,11 @@ def idbpf(
     via_radius = 0.15*mm, # radius of the via drills
     via_padradius = 0.3*mm, # radius of the via pads
     pcb_layer = 'F.Cu', # Kicad layer
-    mask = None, # mask, define with openems.Dielectric()
+    mask = None, # mask, define with Dielectric()
     mask_thickness = 0, # set to non-zero to enable solder mask over filter
 ):
     edge_space = 0.5*mm
-    pec = openems.Metal(em, 'pec_filter')
+    pec = Metal(em, 'pec_filter')
     ring_ix = 0.5 * (np.max(rl) + end_gap)
     ring_ox = ring_ix + 2.0 * via_padradius
     via_z = [[z[0], z[1]+lidz], [z[1], z[2]]]
@@ -36,14 +36,14 @@ def idbpf(
         start = [x1, y, z[1]];
         y += rw[i]
         stop  = [x2, y, z[2]];
-        box = openems.Box(pec, 9, start, stop, padname = 'poly', pcb_layer=pcb_layer)
+        box = Box(pec, 9, start, stop, padname = 'poly', pcb_layer=pcb_layer)
         box.mirror(mirrorstring[mirror])
         mirror = not mirror
         box2 = box.duplicate()
         box2.mirror('xy')
         if i == 0:
             continue
-        v = openems.Via(
+        v = Via(
             pec, priority=2,
             x=ring_ix+via_padradius,
             y=y-0.5*rw[i], z=via_z,
@@ -59,33 +59,33 @@ def idbpf(
     px = ring_ox
     start = [px, y2, z[1]]
     stop  = [px - portlength, y1, z[2]]
-    p = openems.Port(em, start, stop, direction='x', z=50)
+    p = Port(em, start, stop, direction='x', z=50)
     p.mirror(mirrorstring[mirror])
     p2 = p.duplicate().mirror('xy')
     # feed lines
     start = [-ring_ix + rl[0], y1, z[1]]
     stop  = [px - portlength, y2, z[2]]
-    box = openems.Box(pec, 9, start, stop, padname = '1', pcb_layer=pcb_layer)
+    box = Box(pec, 9, start, stop, padname = '1', pcb_layer=pcb_layer)
     box.mirror(mirrorstring[mirror])
     box2 = box.duplicate()
     box2.mirror('xy')
     box2.padname = '3'
     # substrate
     start = np.array([ring_ox, y1 + edge_space, z[0]])
-    stop  = openems.mirror(start, 'xy')
+    stop  = mirror(start, 'xy')
     stop[2] = z[1]+lidz
-    sub = openems.Box(sub, 1, start, stop)
+    sub = Box(sub, 1, start, stop)
     # mask
     if mask_thickness > 0.0:
         start = np.array([ring_ox, y2, z[1]])
-        stop  = openems.mirror(start, 'xy')
+        stop  = mirror(start, 'xy')
         stop[2] += mask_thickness
-        openems.Box(mask, 1, start, stop)
+        Box(mask, 1, start, stop)
     # grounded end metal
     if endmetal:
-        em1 = openems.Box(
-            pec, 9,
-            start = [ring_ix, -y2+space[0], z[1]],
-            stop = [ring_ix + 2.0*via_padradius, y1+edge_space, z[2]],
-            padname = '2', pcb_layer=pcb_layer)
-        em1.duplicate().mirror('xy')
+        for m in ['', 'xy']:
+            Box(pec, 9,
+                start = [ring_ix, -y2+space[0], z[1]],
+                stop = [ring_ix + 2.0*via_padradius, y1+edge_space, z[2]],
+                padname = '2', pcb_layer=pcb_layer,
+                mirror=m)
