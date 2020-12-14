@@ -1,7 +1,5 @@
-import openems
+from openems import Box, Port, Polygon, Metal, arc
 import numpy as np
-
-arc = openems.arc
 
 def generate(
         em,
@@ -34,16 +32,16 @@ def generate(
     yb = 0.5*cutout_width
     yo = -0.1e-3 # overlap
 
-    pec = openems.Metal(em, 'pec')
+    pec = Metal(em, 'pec')
 
     # substrate
     start = np.array([ 0.5*box_length, 0.5*box_width, z[2]])
     stop  = np.array([-0.5*box_length, -0.5*box_width, z[3]])
-    openems.Box(sub, 1, start, stop)
+    Box(sub, 1, start, stop)
     # solder mask
     if mask != None:
         start[2] = z[3] + 25e-6
-        openems.Box(mask, 1, start, stop)
+        Box(mask, 1, start, stop)
 
     # top copper polygon
     points = np.zeros((6+10*len(inductors),2))
@@ -74,14 +72,10 @@ def generate(
     print(points)
     points = np.concatenate((points, points[::-1]*[-1,1]))
     points = np.concatenate((points, points[::-1]*[1,-1]))
-    pec.AddPolygon(
-        points = points,
-        priority = 9,
-        elevation = z[3:5],
-        pcb_layer = 'F.Cu')
+    Polygon(pec, points, z[3:5], priority=9, pcb_layer = 'F.Cu')
 
     # ground plane
-    gpec = openems.Metal(em, 'ground_plane')
+    gpec = Metal(em, 'ground_plane')
     points = np.zeros((2+6*len(inductors),2))
     points[0] = [x0, 0.5*box_width]
     points[1] = [x0, yo]
@@ -103,7 +97,7 @@ def generate(
         x += l
     print("ground plane",points)
     for ym in [1,-1]:
-        gpec.AddPolygon(
+        Polygon(gpec,
             points = [1,ym] * np.concatenate((points, points[::-1]*[-1,1])),
             priority = 9,
             elevation = z[1:3],
@@ -118,7 +112,7 @@ def generate(
         # main line ports
         start = [x0*xm, -0.5*ms_width, z[3]]
         stop  = [x1*xm,  0.5*ms_width, z[4]]
-        em.AddPort(start, stop, direction='x', z=50)
+        Port(em, start, stop, direction='x', z=50)
         # pads
         start[0] = x2*xm
-        l1 = openems.Box(pec, 9, start, stop, padname=padname)
+        l1 = Box(pec, 9, start, stop, padname=padname)
