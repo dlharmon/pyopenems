@@ -349,7 +349,6 @@ class OpenEMS:
         self.ports = []
         self.excitation_port = 0
         self.excite_ports = [1]
-        self.metalloss = False
         self.via_offset_x = 0.0
         self.via_offset_y = 0.0
         self.xgrid = None # for plot
