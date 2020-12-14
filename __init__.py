@@ -88,7 +88,7 @@ class LumpedElement(Material):
         self.element_type = element_type
         self.value = value
         self.direction = direction
-        self.material =  em.CSX.AddLumpedElement(name=self.name, caps=False, ny = self.direction, R=self.value)
+        self.material = em.CSX.AddLumpedElement(name=self.name, caps=False, ny = self.direction, R=self.value)
 
 class Metal(Material):
     def __init__(self, em, name):
@@ -253,6 +253,47 @@ class RoundPad(Object):
                                            priority=self.priority,
                                            radius = self.padradius)
 
+def Resistor(em, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric=None, metal=None, element_down=False, size='0201', thickness=None, FC=False):
+    zm = -1 if invert else 1
+    def orient(x):
+        if not 'y' in direction:
+            return np.array([x[1], x[0], x[2]])
+        return x
+    if thickness is None:
+        if size == '0402':
+            thickness = 0.35e-3
+        thickness = 0.25e-3
+    x1 = 0.15e-3
+    y1 = 0.3e-3
+    y3 = 125e-6
+    x2 = 0.1e-3 # element half width
+    if size == '0402':
+        x1 = 0.25e-3
+        y1 = 0.5e-3
+        y3 = 250e-6
+        x2 = 0.2e-3
+    y2 = y1-30e-6
+
+    """ currently only supports 'x', 'y' for direction """
+    element = LumpedElement(
+        em, name=em.get_name(None), element_type='R', value=value, direction=direction)
+    # resistor end caps
+    start = np.array([-x1, -y1, 0])
+    stop  = np.array([ x1, -0.25*mm/2, 20e-6 if FC else thickness])
+    if size == '0402':
+        stop[1] = -0.25*mm
+    for m in [np.array([1,-1,zm]), np.array([1,1,zm])]:
+        Box(metal, priority, origin+orient(start*m), origin+orient(stop*m), padname = None)
+    # resistor body
+    start = np.array([-x1, -y2, 20e-6*zm])
+    stop  = np.array([ x1,  y2, (thickness - 20e-6)*zm])
+    body = Box(dielectric, priority+1, origin+orient(start), origin+orient(stop), padname=None)
+    # resistor element
+    zoff = 0.0 if element_down else thickness - 20e-6
+    start = np.array([-x2, -y3, zoff*zm])
+    stop  = np.array([ x2, y3, (20e-6+zoff)*zm])
+    Box(element, priority+1, origin+orient(start), origin+orient(stop), padname = None)
+
 class Port(Object):
     def __init__(self, em, start, stop, direction, z, padname = None, layer = 'F.Cu', mirror = ''):
         self.em = em
@@ -320,50 +361,6 @@ class OpenEMS:
 
     def AddPort(self, start, stop, direction, z):
         return Port(self, start, stop, direction, z)
-    def add_resistor(self, name, origin=np.array([0,0,0]), direction='x', value=100.0, invert=False, priority=9, dielectric=None, metal=None, element_down=False, size='0201'):
-        """ currently only supports 'x', 'y' for direction """
-        element = LumpedElement(self, name, element_type='R', value = value, direction = direction)
-        # resistor end caps
-        start = np.array([-0.15*mm, -0.3*mm, 0])
-        stop  = np.array([0.15*mm, -0.25*mm/2, 0.25*mm])
-        if size == '0402':
-            start = np.array([-0.25*mm, -0.5*mm, 0])
-            stop  = np.array([0.25*mm, -0.5*mm/2, 0.35*mm])
-        for m in [np.array([1,-1,1]), np.array([1,1,1])]:
-            metal.AddBox(origin + start*m,
-                         origin + stop*m,
-                         priority=priority, padname = None)
-        # resistor body
-        start = np.array([-0.15, -0.27, 0.02])*mm
-        stop  = np.array([0.15, 0.27, 0.23])*mm
-        if size == '0402':
-            start = np.array([-0.25, -0.47, 0.02])*mm
-            stop  = np.array([0.25, 0.47, 0.33])*mm
-        body = dielectric.AddBox(origin + start, origin + stop, priority=priority+1, padname = None)
-        # resistor element
-        if element_down:
-            zoff = 0.0
-        else:
-            zoff = 0.33 if size == '0402' else 0.23
-        start = np.array([-0.1, -0.25/2, 0+zoff])*mm
-        stop  = np.array([0.1, 0.25/2, 0.02+zoff])*mm
-        if size == '0402':
-            start = np.array([-0.2, -0.25, 0+zoff])*mm
-            stop  = np.array([0.2, 0.25, 0.02+zoff])*mm
-        start += origin
-        stop += origin
-        element = element.AddBox(start, stop, priority=priority+1, padname = None)
-        # reposition
-        if invert:
-            cap1.mirror('z')
-            cap2.mirror('z')
-            body.mirror('z')
-            element.mirror('z')
-        if not 'y' in direction:
-            cap1.rotate_ccw_90()
-            cap2.rotate_ccw_90()
-            body.rotate_ccw_90()
-            element.rotate_ccw_90()
 
     def get_name(self, name):
         if name:
