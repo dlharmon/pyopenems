@@ -4,38 +4,61 @@ from scipy.constants import pi, c, mil
 from openems import OpenEMS, Box, Cylinder, Port, Metal, Dielectric, Polygon, arc
 import numpy as np
 
-band = 3
+band = 5
 
-fc = 16.95e9
-fmax = 25e9
 g = np.ones(10) * 0.28e-3
+g[0] = 0.18e-3
+
 cw = 4e-3
-mesh = [103e-6, 103e-6, 103e-6]
+mesh = [53e-6, 53e-6, 53e-6]
 
-g[0] = 0.15e-3
+# 7 updated
+w = np.array([7.25,15.75,19.25,19.25])*mil
+s = np.array([7.25,11.5,15.75,16.25])*mil
 
-if band == 2:
-    fc = 21.35e9
+boundaries = ['PEC', 'PEC', 'PEC', 'PEC', 'PEC', 'PEC']
+
+if band == 1:
+    fc = 16.95e9*.985
+    fmax = 25e9
+    g = np.ones(10) * 0.28e-3
+    g[0] = 0.15e-3
+    mesh = [34e-6, 32e-6, 27e-6]
+    # 12.09183645866654
+
+elif band == 2:
+    fc = 21.35e9*0.9875#/(21.62/21.35)
     fmax = 30e9
-    #g = np.ones(3) * 0.3e-3
+    mesh = [34e-6, 32e-6, 27e-6]
+    #14.964134888145727
 
-if band == 3:
-    fc = 26.9e9
-    fmax = 38e9
-    mesh = [32e-6, 32e-6, 35e-6]
-    cw = 3.5e-3
+elif band == 3:
+    fc = 26.9e9*0.9955
+    fmax = 35e9
+    mesh = [34e-6, 32e-6, 27e-6]
+    #18.483322945104838
 
-if band == 4:
-    cw = 3.5e-3
-    fc = 33.9e9
+elif band == 4:
+    fc = 33.9e9*0.9955
     fmax = 50e9
-    mesh = [102e-6, 102e-6, 102e-6]
+    mesh = [52e-6, 52e-6, 35e-6]
+    boundaries = ['PEC', 'PEC', 'MUR', 'MUR', 'PEC', 'PEC']
 
-if band == 5:
-    cw = 3.5e-3
+elif band == 5:
     fc = 42.7e9
-    fmax = 50e9
-    mesh = [35e-6, 35e-6, 35e-6]
+    fmax = 60e9
+    mesh = [52e-6, 52e-6, 35e-6]
+    boundaries = ['PEC', 'PEC', 'MUR', 'MUR', 'PEC', 'PEC']
+
+elif band == 6:
+    fc = 53.8e9
+    fmax = 70e9
+    mesh = [52e-6, 52e-6, 35e-6]
+    #g *= 0
+    boundaries = ['PEC', 'PEC', 'MUR', 'MUR', 'PEC', 'PEC']
+
+else:
+    raise Exception("undefined band")
 
 em = OpenEMS(
     'sss_ecbpf{}'.format(band),
@@ -43,31 +66,17 @@ em = OpenEMS(
     fmin = 0e6,
     fmax = fmax,
     fsteps = 1001,
-    #boundaries = ['PEC', 'PEC', 'PML_8', 'PML_8', 'PEC', 'PEC'],
+    boundaries = boundaries,
 )
 
 copper = Metal(em, 'copper')
-sub = Dielectric(em, 'ro4350b', eps_r=3.2, tand=0.0035, fc=fc)
+sub = Dielectric(em, 'polyimide', eps_r=3.2, tand=0.0035, fc=fc)
 zport = 100
 foil_thickness = 0.05e-3
 substrate_thickness = 4*mil
 port_length = 0.42e-3
 
-sl_width = 0.56e-3
-# 5 resonators
-w = np.array([17,34,39])*0.5*mil
-s = np.array([13,22,30])*0.5*mil
-
-
-# 9
-#w = np.array([16,33,39,40,40])*0.5*mil
-w = np.array([16,33,39,39])*0.5*mil
-#s = np.array([13,21,29,31,32])*0.5*mil
-s = np.array([12,21,29,32])*0.5*mil
-
-# 7 # w/s   16/13 32/21 39/29 40/31
-w = np.array([16,32,39,39])*0.5*mil
-s = np.array([13,21,29,31])*0.5*mil
+sl_width = 0.597e-3
 
 qw = 0.25 * c / (fc * np.sqrt(1.35))
 print("quarter wave length:", qw)
@@ -78,7 +87,7 @@ w -= etch
 s += etch
 
 # dimensions Z
-zair = 0.7e-3
+zair = 0.75e-3
 z0 = 0
 z1 = z0 + zair # bottom of bottom foil
 z2 = z1 + foil_thickness # top of bottom foil
@@ -134,7 +143,8 @@ ymax = y + yoff
 
 points = np.array([[-hl, -ymax], [hl, -ymax], [hl, ymax-2*yoff]])
 for m in ['xy', '']:
-    Polygon(copper, points, [z0, z5], x=0, y=0, mirror=m, priority=9)
+    if boundaries[2] == 'PEC':
+        Polygon(copper, points, [z0, z5], x=0, y=0, mirror=m, priority=9)
 
 theta = np.arctan((2*ymax-2*yoff)/(2*hl))
 print("theta =", theta*180/np.pi)
