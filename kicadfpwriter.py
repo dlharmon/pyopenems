@@ -39,7 +39,7 @@ class Generator():
         if drill > 0:
             drillstring = " (drill {:.6f})".format(drill)
             padtype = "thru_hole"
-            layers = " (layers *.Cu *.Mask)"
+            layers = " (layers *.Cu)"
         self.fp += "  (pad {} {} {} {} (size {:.6f} {:.6f}){}".format(
             name, padtype, shape, atstring, xsize, ysize, drillstring)
         self.fp += layers
