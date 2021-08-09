@@ -24,7 +24,7 @@ substrate_thickness = 4*mil
 port_length = 0.15e-3
 box_width = 2e-3
 box_length = 5e-3
-ms_width = 0.21e-
+ms_width = 0.21e-3
 3
 # coax
 pin_radius = 254e-6
