@@ -377,10 +377,10 @@ class OpenEMS:
         with open(self.name+".kicad_mod", "w") as f:
             f.write(fp)
 
-    def run_openems(self, options='view solve', z=50, initialize=True):
+    def run_openems(self, options='view solve', z=50, initialize=True, show_plot=True):
         cwd = os.getcwd()
         basename = cwd + '/' + self.name
-        simpath = r'/tmp/openems_data'
+        simpath = r'/tmp/openems_data' + self.name.split("/")[-1]
         if not os.path.exists(simpath):
             os.mkdir(simpath)
 
@@ -444,4 +444,5 @@ class OpenEMS:
             matplotlib.pyplot.savefig(basename+".png")
             matplotlib.pyplot.savefig(basename+".svg")
             matplotlib.pyplot.savefig(basename+".pdf")
-            matplotlib.pyplot.show()
+            if show_plot:
+                matplotlib.pyplot.show()
