@@ -16,10 +16,10 @@ args = parser.parse_args()
 
 em = OpenEMS('microstrip', EndCriteria = 1e-5, fmin = 0e6, fmax = args.Fmax, fsteps = 1601, boundaries = ['PEC', 'PML_12', 'PEC', 'PEC', 'PEC', 'PEC'])
 copper = Metal(em, 'copper')
-sub = Dielectric(em, 'substrate', eps_r=args.Er, tand=0.020, fc=args.Fc)
+sub = Dielectric(em, 'substrate', eps_r=args.Er, tand=0.00, fc=args.Fc)
 
 foil_thickness = 0.036*mm
-box_length = 5*mm
+box_length = 10*mm
 box_width = 2.5*mm
 box_top = 1.5*mm
 
