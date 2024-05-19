@@ -120,7 +120,7 @@ class Object():
 from .polygon import Polygon
 
 class Box(Object):
-    def __init__(self, material, priority, start, stop, padname = '1', pcb_layer='F.Cu', mirror=''):
+    def __init__(self, material, priority, start, stop, padname = '1', pcb_layer='F.Cu', mirror='', mesh=True):
         mirror = [-1 if 'x' in mirror else 1, -1 if 'y' in mirror else 1, -1 if 'z' in mirror else 1]
         self.priority = priority
         self.material = material
@@ -131,6 +131,7 @@ class Box(Object):
         self.padname = padname
         self.layer = pcb_layer
         self.em.objects[self.name] = self
+        self.mesh = mesh
     def generate_kicad(self, g):
         if self.material.__class__.__name__ == 'Dielectric':
             return
@@ -153,10 +154,11 @@ class Box(Object):
     def generate_octave(self):
         self.material.material.AddBox(start=self.start, stop=self.stop,
                                       priority=self.priority)
-        for vertex in [self.start, self.stop]:
-            self.em.mesh.AddLine('x', vertex[0])
-            self.em.mesh.AddLine('y', vertex[1])
-            self.em.mesh.AddLine('z', vertex[2])
+        if self.mesh:
+            for vertex in [self.start, self.stop]:
+                self.em.mesh.AddLine('x', vertex[0])
+                self.em.mesh.AddLine('y', vertex[1])
+                self.em.mesh.AddLine('z', vertex[2])
 
 class Cylinder(Object):
     def __init__(self, material, priority, start, stop, radius):
@@ -377,7 +379,7 @@ class OpenEMS:
         with open(self.name+".kicad_mod", "w") as f:
             f.write(fp)
 
-    def run_openems(self, options='view solve', z=50, initialize=True, show_plot=True):
+    def run_openems(self, options='view solve', z=50, initialize=True, show_plot=True, numThreads=8):
         cwd = os.getcwd()
         basename = cwd + '/' + self.name
         simpath = r'/tmp/openems_data' + self.name.split("/")[-1]
@@ -387,8 +389,8 @@ class OpenEMS:
         for object in self.objects:
             self.objects[object].generate_octave()
 
-        import collections
-        if not isinstance(self.resolution, collections.Sequence):
+        import collections.abc
+        if not isinstance(self.resolution, collections.abc.Sequence):
             self.resolution = np.ones(3) * self.resolution
 
         ratio = 1.5
@@ -401,7 +403,7 @@ class OpenEMS:
                 self.CSX.Write2XML(CSX_file)
                 os.system(r'AppCSXCAD "{}"'.format(CSX_file))
         if 'solve' in options:
-            self.FDTD.Run(simpath, verbose=3, cleanup=True)
+            self.FDTD.Run(simpath, verbose=3, cleanup=True, numThreads=numThreads)
             f = np.linspace(self.fmin, self.fmax, self.fsteps)
             for p in self.ports:
                 p.port.CalcPort(simpath, f, ref_impedance = z)
@@ -426,11 +428,8 @@ class OpenEMS:
                 save_s2p_symmetric(f, s11, s21, basename+".s2p", z=z)
             ax.plot(f/1e9, 20*np.log10(np.abs(s11)), label = 'dB(s11)')
             if nports > 2:
-                s31 = s[2]
-                ax.plot(f/1e9, 20*np.log10(np.abs(s31)), label = 'dB(s31)')
-            if nports > 3:
-                s41 = s[3]
-                ax.plot(f/1e9, 20*np.log10(np.abs(s41)), label = 'dB(s41)')
+                for i in range(2,nports):
+                    ax.plot(f/1e9, 20*np.log10(np.abs(s[i])), label = f'dB(s{i+1}1)')
 
             ax.set_xlabel('Frequency (GHz)')
             ax.set_ylabel('dB')
