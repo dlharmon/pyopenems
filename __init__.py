@@ -446,3 +446,4 @@ class OpenEMS:
             matplotlib.pyplot.savefig(basename+".pdf")
             if show_plot:
                 matplotlib.pyplot.show()
+            return s
